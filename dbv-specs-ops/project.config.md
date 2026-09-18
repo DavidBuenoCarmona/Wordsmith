@@ -7,13 +7,13 @@
 
 ## Project Identity
 
-- **Name:** [Project Name]
-- **Description:** [One-line description]
-- **Author / Company:** [Your Name or Company · https://yourwebsite.com]
-- **License:** [MIT]
-- **Languages:** [e.g. Python, JavaScript, HTML, CSS]
-- **Technologies / Stack:** [e.g. FastAPI, React, PostgreSQL]
-- **Agent Readiness (Web):** [Yes / No / Not Applicable]
+- **Name:** Wordsmith
+- **Description:** AI-native 3D world generator that turns a single natural language prompt into an interactive, composed 3D scene using World Labs and Tripo.
+- **Author / Company:** David Bueno Carmona · https://github.com/davidbuenov
+- **License:** MIT
+- **Languages:** TypeScript, JavaScript, HTML, CSS
+- **Technologies / Stack:** React, Three.js, Vite, TailwindCSS, Node.js (Fastify/Express), SQLite, World Labs API, Tripo API
+- **Agent Readiness (Web):** Yes
 - **Framework Version:** 2.8.0
 
 

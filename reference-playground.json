@@ -1,0 +1,115 @@
+{
+  "operation": {
+    "operation_id": "2c633f4d-bbb4-4274-b716-ad222163a6ff",
+    "created_at": "2026-09-17T22:06:51Z",
+    "updated_at": "2026-09-17T22:12:16Z",
+    "expires_at": "2026-09-18T01:06:51Z",
+    "done": true,
+    "error": null,
+    "metadata": {
+      "progress": {
+        "status": "SUCCEEDED",
+        "description": "World generation completed successfully"
+      },
+      "world_id": "43956d0c-f28e-44d8-9832-df6f0133e97a",
+      "operation_type": "world_generation",
+      "public_model_name": "marble-1.1"
+    },
+    "response": {
+      "world_id": "43956d0c-f28e-44d8-9832-df6f0133e97a",
+      "display_name": "",
+      "tags": null,
+      "assets": {
+        "mesh": {
+          "collider_mesh_url": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/49925c3c.glb",
+          "hq_mesh_url": null,
+          "full_res_mesh_url": null
+        },
+        "imagery": {
+          "pano_url": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/32a30869-1a08-47fe-a589-d2c476c78e27_panos/rgb_0.png"
+        },
+        "splats": {
+          "spz_urls": {
+            "500k": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/5cc52299-dd1e-40dd-b325-4762fce22f4b_ceramic_500k.spz",
+            "100k": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/e5dfdd26-f2de-4907-ab46-4cfc6dca400a_dust_100k.spz",
+            "150k": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/fe42bdd0-b597-4b4b-b978-5df676a34b0d_ceramic_150k.spz",
+            "full_res": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/d8d581cb-71ae-49d3-945d-d3e889f4c642_ceramic.spz"
+          },
+          "semantics_metadata": {
+            "metric_scale_factor": 2.9310389,
+            "ground_plane_offset": 1.6768882
+          }
+        },
+        "thumbnail_url": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/c82503bc-265c-4d97-981e-0adca15df304_sand_mpi/thumbnail.webp",
+        "caption": "The scene is a vibrant and inviting children's playground, rendered in a realistic style, capturing the joyful atmosphere of a sunny day in a lush green park. The overall tone is cheerful and energetic, reflecting the playful nature of the environment. A large, multi-colored play structure dominates the center of the playground, featuring several slides of varying heights and colors, including bright red, yellow, and blue. Adjacent to the main structure, a set of swings with both traditional belt seats and toddler bucket seats hangs from a sturdy metal frame. A spacious sandbox, filled with fine, light-colored sand, is situated near the swings, complete with various colorful plastic toys scattered within. Numerous mature trees with full, green canopies encircle the playground, providing ample shade and a natural backdrop. The ground beneath the play equipment is covered with soft, impact-absorbing material, likely rubber mulch, in a contrasting color to the green grass. Benches are strategically placed around the perimeter of the play area, offering resting spots for guardians. A paved pathway winds through the park, leading to and from the playground. The main play structure stands centrally, with the swings positioned to its left and the sandbox to its right. The trees form a natural boundary around the entire area, and the benches are arranged along the pathway that borders the playground. The 360 scene is faultless."
+      },
+      "created_at": null,
+      "updated_at": null,
+      "permission": {
+        "public": false,
+        "allowed_readers": [],
+        "allowed_writers": [],
+        "allow_id_access": false
+      },
+      "world_prompt": null,
+      "world_marble_url": "https://marble.worldlabs.ai/world/43956d0c-f28e-44d8-9832-df6f0133e97a",
+      "model": null
+    },
+    "cost": {
+      "total_credits": 1580,
+      "line_items": [
+        {
+          "name": "Pano generation (text)",
+          "credits": 80
+        },
+        {
+          "name": "World generation",
+          "credits": 1500
+        }
+      ]
+    }
+  },
+  "world": {
+    "world_id": "43956d0c-f28e-44d8-9832-df6f0133e97a",
+    "display_name": "Colorful Children Playground Green Park",
+    "tags": null,
+    "assets": {
+      "mesh": {
+        "collider_mesh_url": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/49925c3c.glb",
+        "hq_mesh_url": null,
+        "full_res_mesh_url": null
+      },
+      "imagery": {
+        "pano_url": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/32a30869-1a08-47fe-a589-d2c476c78e27_panos/rgb_0.png"
+      },
+      "splats": {
+        "spz_urls": {
+          "500k": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/5cc52299-dd1e-40dd-b325-4762fce22f4b_ceramic_500k.spz",
+          "100k": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/e5dfdd26-f2de-4907-ab46-4cfc6dca400a_dust_100k.spz",
+          "150k": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/fe42bdd0-b597-4b4b-b978-5df676a34b0d_ceramic_150k.spz",
+          "full_res": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/d8d581cb-71ae-49d3-945d-d3e889f4c642_ceramic.spz"
+        },
+        "semantics_metadata": {
+          "metric_scale_factor": 2.9310388565063477,
+          "ground_plane_offset": 1.6768882274627686
+        }
+      },
+      "thumbnail_url": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/c82503bc-265c-4d97-981e-0adca15df304_sand_mpi/thumbnail.webp",
+      "caption": "The scene is a vibrant and inviting children's playground, rendered in a realistic style, capturing the joyful atmosphere of a sunny day in a lush green park. The overall tone is cheerful and energetic, reflecting the playful nature of the environment. A large, multi-colored play structure dominates the center of the playground, featuring several slides of varying heights and colors, including bright red, yellow, and blue. Adjacent to the main structure, a set of swings with both traditional belt seats and toddler bucket seats hangs from a sturdy metal frame. A spacious sandbox, filled with fine, light-colored sand, is situated near the swings, complete with various colorful plastic toys scattered within. Numerous mature trees with full, green canopies encircle the playground, providing ample shade and a natural backdrop. The ground beneath the play equipment is covered with soft, impact-absorbing material, likely rubber mulch, in a contrasting color to the green grass. Benches are strategically placed around the perimeter of the play area, offering resting spots for guardians. A paved pathway winds through the park, leading to and from the playground. The main play structure stands centrally, with the swings positioned to its left and the sandbox to its right. The trees form a natural boundary around the entire area, and the benches are arranged along the pathway that borders the playground. "
+    },
+    "created_at": "2026-09-17T22:06:50Z",
+    "updated_at": "2026-09-17T22:12:16Z",
+    "permission": {
+      "public": false,
+      "allowed_readers": [],
+      "allowed_writers": [],
+      "allow_id_access": false
+    },
+    "world_prompt": {
+      "text_prompt": "The scene is a vibrant and inviting children's playground, rendered in a realistic style, capturing the joyful atmosphere of a sunny day in a lush green park. The overall tone is cheerful and energetic, reflecting the playful nature of the environment. A large, multi-colored play structure dominates the center of the playground, featuring several slides of varying heights and colors, including bright red, yellow, and blue. Adjacent to the main structure, a set of swings with both traditional belt seats and toddler bucket seats hangs from a sturdy metal frame. A spacious sandbox, filled with fine, light-colored sand, is situated near the swings, complete with various colorful plastic toys scattered within. Numerous mature trees with full, green canopies encircle the playground, providing ample shade and a natural backdrop. The ground beneath the play equipment is covered with soft, impact-absorbing material, likely rubber mulch, in a contrasting color to the green grass. Benches are strategically placed around the perimeter of the play area, offering resting spots for guardians. A paved pathway winds through the park, leading to and from the playground. The main play structure stands centrally, with the swings positioned to its left and the sandbox to its right. The trees form a natural boundary around the entire area, and the benches are arranged along the pathway that borders the playground. The 360 scene is faultless.",
+      "type": "text"
+    },
+    "world_marble_url": "https://marble.worldlabs.ai/world/43956d0c-f28e-44d8-9832-df6f0133e97a",
+    "model": "marble-1.1"
+  }
+}

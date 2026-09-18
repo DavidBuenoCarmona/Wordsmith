@@ -1,0 +1,20 @@
+{
+  "title": "Parque de Niños (Children Playground Reference Scene)",
+  "world_id": "43956d0c-f28e-44d8-9832-df6f0133e97a",
+  "generated_at": "2026-09-17T22:12:16Z",
+  "world_marble_url": "https://marble.worldlabs.ai/world/43956d0c-f28e-44d8-9832-df6f0133e97a",
+  "thumbnail_url": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/c82503bc-265c-4d97-981e-0adca15df304_sand_mpi/thumbnail.webp",
+  "pano_url": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/32a30869-1a08-47fe-a589-d2c476c78e27_panos/rgb_0.png",
+  "collider_mesh_url": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/49925c3c.glb",
+  "splat_urls": {
+    "full_res": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/d8d581cb-71ae-49d3-945d-d3e889f4c642_ceramic.spz",
+    "500k": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/5cc52299-dd1e-40dd-b325-4762fce22f4b_ceramic_500k.spz",
+    "150k": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/fe42bdd0-b597-4b4b-b978-5df676a34b0d_ceramic_150k.spz",
+    "100k": "https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/e5dfdd26-f2de-4907-ab46-4cfc6dca400a_dust_100k.spz"
+  },
+  "semantics_metadata": {
+    "metric_scale_factor": 2.9310389,
+    "ground_plane_offset": 1.6768882
+  },
+  "prompt": "The scene is a vibrant and inviting children's playground, rendered in a realistic style, capturing the joyful atmosphere of a sunny day in a lush green park. A large, multi-colored play structure dominates the center of the playground, featuring several slides of varying heights and colors, including bright red, yellow, and blue. Adjacent to the main structure, a set of swings with both traditional belt seats and toddler bucket seats hangs from a sturdy metal frame. A spacious sandbox, filled with fine, light-colored sand, is situated near the swings, complete with various colorful plastic toys scattered within."
+}
