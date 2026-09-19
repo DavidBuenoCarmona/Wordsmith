@@ -26,75 +26,124 @@ import { GenerationStorage } from './generationStorage.js';
  */
 export class MockLLMProvider implements ILLMProvider {
   async decomposePrompt(input: WorldPromptInput): Promise<WorldSpec> {
-    const isPirate = input.prompt.toLowerCase().includes('pirat') || input.prompt.toLowerCase().includes('barco');
+    const lower = input.prompt.toLowerCase();
+    const isPirate = lower.includes('pirat') || lower.includes('barco');
+    const isPlayground = lower.includes('parque') || lower.includes('play') || lower.includes('niño') || lower.includes('juego') || lower.includes('tobogan') || lower.includes('columpio');
 
-    const rawSpec = isPirate
-      ? {
-          version: '1.0.0' as const,
-          title: 'Isla Pirata Abandonada',
-          description: input.prompt,
-          environment: {
-            prompt: 'Tropical pirate island with sandy beaches and ocean waves',
-            theme: 'pirate-bay',
-            lighting: 'sunset' as const,
-            skyboxColor: '#ff7f50',
+    let rawSpec;
+    if (isPlayground) {
+      rawSpec = {
+        version: '1.0.0' as const,
+        title: 'Parque Infantil Soleado',
+        description: input.prompt,
+        environment: {
+          prompt: 'Parque infantil colorido y soleado con toboganes, columpios, arenero y árboles verdes en un parque público.',
+          theme: 'playground',
+          lighting: 'day' as const,
+          skyboxColor: '#87ceeb',
+        },
+        assets: [
+          {
+            id: 'slide-1',
+            name: 'Tobogán Infantil',
+            prompt: 'Colorful red and yellow playground slide for kids',
+            category: 'architecture' as const,
+            position: { x: -2, y: 0, z: -1 },
+            rotation: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+            anchorToGround: true,
           },
-          assets: [
-            {
-              id: 'shipwreck-1',
-              name: 'Galeón Hundido',
-              prompt: 'Destroyed wooden pirate ship shipwreck on beach',
-              category: 'architecture' as const,
-              position: { x: -4, y: 0, z: -3 },
-              rotation: { x: 0, y: 0.4, z: -0.1 },
-              scale: { x: 1.5, y: 1.5, z: 1.5 },
-              anchorToGround: true,
-            },
-            {
-              id: 'treasure-chest-1',
-              name: 'Cofre del Tesoro',
-              prompt: 'Open wooden treasure chest filled with gold coins and gems',
-              category: 'prop' as const,
-              position: { x: 2, y: 0, z: 1 },
-              rotation: { x: 0, y: -0.2, z: 0 },
-              scale: { x: 0.8, y: 0.8, z: 0.8 },
-              anchorToGround: true,
-            },
-            {
-              id: 'pirate-robot-1',
-              name: 'Robot Pirata',
-              prompt: 'Steampunk pirate android with hook hand and glowing eye',
-              category: 'character' as const,
-              position: { x: 0, y: 0, z: 0 },
-              rotation: { x: 0, y: 0, z: 0 },
-              scale: { x: 1, y: 1, z: 1 },
-              anchorToGround: true,
-            },
-          ].slice(0, input.maxAssets),
-        }
-      : {
-          version: '1.0.0' as const,
-          title: 'Mundo Generado',
-          description: input.prompt,
-          environment: {
-            prompt: `Stylized 3D landscape representing: ${input.prompt}`,
-            theme: 'custom-world',
-            lighting: 'day' as const,
-            skyboxColor: '#87ceeb',
+          {
+            id: 'swings-1',
+            name: 'Columpios',
+            prompt: 'Metal swing set with rubber seats in a park',
+            category: 'architecture' as const,
+            position: { x: 2, y: 0, z: -2 },
+            rotation: { x: 0, y: 0.3, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+            anchorToGround: true,
           },
-          assets: [
-            {
-              id: 'primary-asset-1',
-              name: 'Elemento Principal',
-              prompt: `Main stylized focal prop for: ${input.prompt}`,
-              category: 'prop' as const,
-              position: { x: 0, y: 0, z: 0 },
-              rotation: { x: 0, y: 0, z: 0 },
-              scale: { x: 1, y: 1, z: 1 },
-              anchorToGround: true,
-            },
-          ],
-        };
+          {
+            id: 'sandbox-1',
+            name: 'Arenero con Juguetes',
+            prompt: 'Square wooden sandbox with colorful plastic buckets and shovels',
+            category: 'prop' as const,
+            position: { x: 0, y: 0, z: 2 },
+            rotation: { x: 0, y: 0, z: 0 },
+            scale: { x: 0.9, y: 0.9, z: 0.9 },
+            anchorToGround: true,
+          },
+        ].slice(0, input.maxAssets),
+      };
+    } else if (isPirate) {
+      rawSpec = {
+        version: '1.0.0' as const,
+        title: 'Isla Pirata Abandonada',
+        description: input.prompt,
+        environment: {
+          prompt: 'Tropical pirate island with sandy beaches and ocean waves',
+          theme: 'pirate-bay',
+          lighting: 'sunset' as const,
+          skyboxColor: '#ff7f50',
+        },
+        assets: [
+          {
+            id: 'shipwreck-1',
+            name: 'Galeón Hundido',
+            prompt: 'Destroyed wooden pirate ship shipwreck on beach',
+            category: 'architecture' as const,
+            position: { x: -4, y: 0, z: -3 },
+            rotation: { x: 0, y: 0.4, z: -0.1 },
+            scale: { x: 1.5, y: 1.5, z: 1.5 },
+            anchorToGround: true,
+          },
+          {
+            id: 'treasure-chest-1',
+            name: 'Cofre del Tesoro',
+            prompt: 'Open wooden treasure chest filled with gold coins and gems',
+            category: 'prop' as const,
+            position: { x: 2, y: 0, z: 1 },
+            rotation: { x: 0, y: -0.2, z: 0 },
+            scale: { x: 0.8, y: 0.8, z: 0.8 },
+            anchorToGround: true,
+          },
+          {
+            id: 'pirate-robot-1',
+            name: 'Robot Pirata',
+            prompt: 'Steampunk pirate android with hook hand and glowing eye',
+            category: 'character' as const,
+            position: { x: 0, y: 0, z: 0 },
+            rotation: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+            anchorToGround: true,
+          },
+        ].slice(0, input.maxAssets),
+      };
+    } else {
+      rawSpec = {
+        version: '1.0.0' as const,
+        title: 'Mundo Generado',
+        description: input.prompt,
+        environment: {
+          prompt: `Stylized 3D landscape representing: ${input.prompt}`,
+          theme: 'custom-world',
+          lighting: 'day' as const,
+          skyboxColor: '#87ceeb',
+        },
+        assets: [
+          {
+            id: 'primary-asset-1',
+            name: 'Elemento Principal',
+            prompt: `Main stylized focal prop for: ${input.prompt}`,
+            category: 'prop' as const,
+            position: { x: 0, y: 0, z: 0 },
+            rotation: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+            anchorToGround: true,
+          },
+        ],
+      };
+    }
 
     return WorldSpecSchema.parse(rawSpec);
   }
@@ -104,10 +153,10 @@ export class MockLLMProvider implements ILLMProvider {
  * Mock World Labs Provider
  */
 export class MockWorldLabsProvider implements IWorldLabsProvider {
-  private readonly storage?: GenerationStorage;
+  private readonly storage: GenerationStorage;
 
   constructor(private readonly simulatedDelayMs: number = 20, storage?: GenerationStorage) {
-    this.storage = storage;
+    this.storage = storage ?? new GenerationStorage();
   }
 
   async generateEnvironment(spec: WorldSpec['environment']): Promise<{
@@ -118,16 +167,15 @@ export class MockWorldLabsProvider implements IWorldLabsProvider {
       await new Promise((resolve) => setTimeout(resolve, this.simulatedDelayMs));
     }
 
-    if (this.storage) {
-      const cached = await this.storage.getWorldLabsFallback(spec);
-      if (cached) {
-        return cached;
-      }
+    const cached = await this.storage.getWorldLabsFallback(spec);
+    if (cached) {
+      return cached;
     }
 
+    // Fallback por defecto al mapa real del parque infantil Gaussian Splatting (3D)
     return {
-      sceneUrl: `https://mock.worldlabs.ai/scenes/${encodeURIComponent(spec.theme)}.splat`,
-      previewUrl: `https://mock.worldlabs.ai/previews/${encodeURIComponent(spec.theme)}.jpg`,
+      sceneUrl: 'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/5cc52299-dd1e-40dd-b325-4762fce22f4b_ceramic_500k.spz',
+      previewUrl: 'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/c82503bc-265c-4d97-981e-0adca15df304_sand_mpi/thumbnail.webp',
     };
   }
 }
@@ -136,10 +184,10 @@ export class MockWorldLabsProvider implements IWorldLabsProvider {
  * Mock Tripo 3D Provider
  */
 export class MockTripoProvider implements ITripoProvider {
-  private readonly storage?: GenerationStorage;
+  private readonly storage: GenerationStorage;
 
   constructor(private readonly simulatedDelayMs: number = 20, storage?: GenerationStorage) {
-    this.storage = storage;
+    this.storage = storage ?? new GenerationStorage();
   }
 
   async generateAsset(spec: WorldSpec['assets'][number]): Promise<{
@@ -149,11 +197,9 @@ export class MockTripoProvider implements ITripoProvider {
       await new Promise((resolve) => setTimeout(resolve, this.simulatedDelayMs));
     }
 
-    if (this.storage) {
-      const cached = await this.storage.getTripoFallback(spec);
-      if (cached) {
-        return cached;
-      }
+    const cached = await this.storage.getTripoFallback(spec);
+    if (cached) {
+      return cached;
     }
 
     return {

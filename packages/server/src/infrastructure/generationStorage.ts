@@ -16,6 +16,8 @@ export interface CachedWorldLabsRecord {
   lighting?: string;
   sceneUrl: string;
   previewUrl?: string;
+  panoUrl?: string;
+  colliderMeshUrl?: string;
   createdAt: string;
   rawResponse?: unknown;
 }
@@ -30,36 +32,70 @@ export interface CachedTripoRecord {
   rawResponse?: unknown;
 }
 
+export interface SavedWorldItem {
+  id: string;
+  name: string;
+  description: string;
+  theme: string;
+  sceneUrl: string;
+  previewUrl?: string;
+  type: 'spz' | 'glb' | 'pano';
+  source: 'local_file' | 'generation_cache' | 'reference';
+  createdAt?: string;
+}
+
+export interface SavedModelItem {
+  id: string;
+  name: string;
+  description?: string;
+  prompt?: string;
+  category?: string;
+  modelUrl: string;
+  source: 'local_file' | 'generation_cache' | 'reference';
+  createdAt?: string;
+}
+
 export class GenerationStorage {
+  private readonly rootDir: string;
   private readonly baseDir: string;
+  private readonly worldsDir: string;
+  private readonly modelsDir: string;
   private readonly worldLabsDir: string;
   private readonly tripoDir: string;
 
   constructor(customBaseDir?: string) {
     if (customBaseDir) {
       this.baseDir = customBaseDir;
+      this.rootDir = path.dirname(customBaseDir);
     } else if (process.env.WORDSMITH_STORAGE_DIR) {
       this.baseDir = process.env.WORDSMITH_STORAGE_DIR;
+      this.rootDir = path.dirname(this.baseDir);
     } else {
-      this.baseDir = this.detectStorageDir();
+      const detected = this.detectStorageDir();
+      this.baseDir = detected.baseDir;
+      this.rootDir = detected.rootDir;
     }
 
+    this.worldsDir = path.join(this.rootDir, 'storage', 'worlds');
+    this.modelsDir = path.join(this.rootDir, 'storage', 'models');
     this.worldLabsDir = path.join(this.baseDir, 'worldlabs');
     this.tripoDir = path.join(this.baseDir, 'tripo');
 
     this.ensureDirectories();
   }
 
-  private detectStorageDir(): string {
+  private detectStorageDir(): { baseDir: string; rootDir: string } {
     let current = process.cwd();
-    // Buscar la raíz del proyecto (donde esté package.json de wordsmith-root)
     for (let i = 0; i < 4; i++) {
       const pkgPath = path.join(current, 'package.json');
       if (fs.existsSync(pkgPath)) {
         try {
           const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
           if (pkg.name === 'wordsmith-root' || pkg.workspaces) {
-            return path.join(current, 'storage', 'generations');
+            return {
+              baseDir: path.join(current, 'storage', 'generations'),
+              rootDir: current,
+            };
           }
         } catch {
           // Ignorar error de parseo y seguir
@@ -70,16 +106,33 @@ export class GenerationStorage {
       current = parent;
     }
 
-    return path.join(process.cwd(), 'storage', 'generations');
+    return {
+      baseDir: path.join(process.cwd(), 'storage', 'generations'),
+      rootDir: process.cwd(),
+    };
   }
 
   private ensureDirectories(): void {
+    if (!fs.existsSync(this.worldsDir)) {
+      fs.mkdirSync(this.worldsDir, { recursive: true });
+    }
+    if (!fs.existsSync(this.modelsDir)) {
+      fs.mkdirSync(this.modelsDir, { recursive: true });
+    }
     if (!fs.existsSync(this.worldLabsDir)) {
       fs.mkdirSync(this.worldLabsDir, { recursive: true });
     }
     if (!fs.existsSync(this.tripoDir)) {
       fs.mkdirSync(this.tripoDir, { recursive: true });
     }
+  }
+
+  public getWorldsDir(): string {
+    return this.worldsDir;
+  }
+
+  public getModelsDir(): string {
+    return this.modelsDir;
   }
 
   private slugify(text: string): string {
@@ -130,21 +183,23 @@ export class GenerationStorage {
         const parsed = JSON.parse(content);
         if (parsed.sceneUrl) {
           records.push(parsed);
-        } else if (parsed.world?.assets?.mesh?.collider_mesh_url || parsed.operation?.response?.assets?.mesh?.collider_mesh_url) {
-          // Soporte para archivos crudos como reference-playground.json
+        } else if (parsed.world?.assets?.splats?.spz_urls?.full_res || parsed.world?.assets?.splats?.spz_urls?.['500k'] || parsed.world?.assets?.mesh?.collider_mesh_url) {
           const w = parsed.world || parsed.operation?.response;
+          const splatUrl = w.assets?.splats?.spz_urls?.full_res || w.assets?.splats?.spz_urls?.['500k'];
           records.push({
             id: w.world_id || file.replace('.json', ''),
             prompt: w.world_prompt?.text_prompt || w.display_name || 'Cached Playground',
             theme: 'playground',
-            sceneUrl: w.assets?.mesh?.collider_mesh_url || w.assets?.splats?.spz_urls?.full_res || w.world_marble_url,
+            sceneUrl: splatUrl || w.assets?.mesh?.collider_mesh_url || w.world_marble_url,
             previewUrl: w.assets?.thumbnail_url,
+            panoUrl: w.assets?.imagery?.pano_url,
+            colliderMeshUrl: w.assets?.mesh?.collider_mesh_url,
             createdAt: new Date().toISOString(),
             rawResponse: parsed,
           });
         }
       } catch {
-        // Ignorar archivos corruptos
+        // Ignorar
       }
     }
 
@@ -160,19 +215,168 @@ export class GenerationStorage {
     }
 
     if (spec?.theme) {
-      const match = list.find((r) => r.theme.toLowerCase().includes(spec.theme!.toLowerCase()));
+      const match = list.find((r) => r.theme && r.theme.toLowerCase().includes(spec.theme!.toLowerCase()));
       if (match) return { sceneUrl: match.sceneUrl, previewUrl: match.previewUrl };
     }
 
     if (spec?.prompt) {
       const promptLower = spec.prompt.toLowerCase();
-      const match = list.find((r) => r.prompt.toLowerCase().includes(promptLower) || promptLower.includes(r.theme.toLowerCase()));
+      const match = list.find((r) => r.prompt && (r.prompt.toLowerCase().includes(promptLower) || promptLower.includes(r.theme?.toLowerCase() || '')));
       if (match) return { sceneUrl: match.sceneUrl, previewUrl: match.previewUrl };
     }
 
-    // Si no hay coincidencia exacta, devolver el más reciente disponible
     const latest = list[0];
     return { sceneUrl: latest.sceneUrl, previewUrl: latest.previewUrl };
+  }
+
+  // --- Listado Consolidado de Mundos Guardados (para el selector de la UI) ---
+
+  async listAllSavedWorlds(): Promise<SavedWorldItem[]> {
+    this.ensureDirectories();
+    const results: SavedWorldItem[] = [];
+    const seenUrls = new Set<string>();
+
+    // 1. Escanear directorio dedicado storage/worlds/ por archivos locales (.spz, .splat, .glb, .json)
+    if (fs.existsSync(this.worldsDir)) {
+      const localFiles = await fs.promises.readdir(this.worldsDir);
+      for (const file of localFiles) {
+        const ext = path.extname(file).toLowerCase();
+        const baseName = path.basename(file, ext);
+
+        if (ext === '.spz' || ext === '.splat') {
+          const fileUrl = `/api/storage/files/${encodeURIComponent(file)}`;
+          seenUrls.add(fileUrl);
+          results.push({
+            id: `local-${file}`,
+            name: `${baseName.replace(/[-_]/g, ' ')} (Local SPZ)`,
+            description: `Archivo local 3D Gaussian Splatting en storage/worlds/${file}`,
+            theme: baseName,
+            sceneUrl: fileUrl,
+            type: 'spz',
+            source: 'local_file',
+          });
+        } else if (ext === '.glb') {
+          const fileUrl = `/api/storage/files/${encodeURIComponent(file)}`;
+          seenUrls.add(fileUrl);
+          results.push({
+            id: `local-${file}`,
+            name: `${baseName.replace(/[-_]/g, ' ')} (Local GLB)`,
+            description: `Archivo local 3D GLB en storage/worlds/${file}`,
+            theme: baseName,
+            sceneUrl: fileUrl,
+            type: 'glb',
+            source: 'local_file',
+          });
+        }
+      }
+    }
+
+    // 2. Escanear registros en storage/generations/worldlabs/
+    const cachedList = await this.listWorldLabs();
+    for (const item of cachedList) {
+      if (seenUrls.has(item.sceneUrl)) continue;
+      seenUrls.add(item.sceneUrl);
+
+      const isSpz = item.sceneUrl.includes('.spz') || item.sceneUrl.includes('.splat');
+      const isGlb = item.sceneUrl.includes('.glb');
+
+      results.push({
+        id: item.id,
+        name: item.theme ? `${item.theme.charAt(0).toUpperCase() + item.theme.slice(1)}` : 'Mundo Guardado',
+        description: item.prompt || 'Mundo 3D generado',
+        theme: item.theme || 'custom',
+        sceneUrl: item.sceneUrl,
+        previewUrl: item.previewUrl,
+        type: isSpz ? 'spz' : isGlb ? 'glb' : 'pano',
+        source: 'generation_cache',
+        createdAt: item.createdAt,
+      });
+    }
+
+    // 3. Incluir el Parque Infantil de Referencia oficial si no está ya
+    const defaultPlaygroundUrl = 'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/5cc52299-dd1e-40dd-b325-4762fce22f4b_ceramic_500k.spz';
+    if (!seenUrls.has(defaultPlaygroundUrl)) {
+      results.unshift({
+        id: 'reference-playground',
+        name: 'Parque Infantil (World Labs)',
+        description: 'Escenario completo 3D Gaussian Splatting de parque infantil con toboganes, columpios y arenero.',
+        theme: 'playground',
+        sceneUrl: defaultPlaygroundUrl,
+        previewUrl: 'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/c82503bc-265c-4d97-981e-0adca15df304_sand_mpi/thumbnail.webp',
+        type: 'spz',
+        source: 'reference',
+      });
+    }
+
+    return results;
+  }
+
+  // --- Listado Consolidado de Modelos 3D Guardados (para el selector de modelos de la UI) ---
+
+  async listAllSavedModels(): Promise<SavedModelItem[]> {
+    this.ensureDirectories();
+    const results: SavedModelItem[] = [];
+    const seenUrls = new Set<string>();
+
+    // 1. Escanear directorio dedicado storage/models/ por archivos locales (.glb, .gltf)
+    if (fs.existsSync(this.modelsDir)) {
+      const localFiles = await fs.promises.readdir(this.modelsDir);
+      for (const file of localFiles) {
+        const ext = path.extname(file).toLowerCase();
+        const baseName = path.basename(file, ext);
+
+        if (ext === '.glb' || ext === '.gltf') {
+          const fileUrl = `/api/storage/files/${encodeURIComponent(file)}`;
+          seenUrls.add(fileUrl);
+          results.push({
+            id: `local-model-${file}`,
+            name: baseName.replace(/[-_]/g, ' '),
+            description: `Modelo 3D local GLB en storage/models/${file}`,
+            modelUrl: fileUrl,
+            category: 'prop',
+            source: 'local_file',
+          });
+        }
+      }
+    }
+
+    // 2. Escanear registros en storage/generations/tripo/
+    const cachedTripoList = await this.listTripo();
+    for (const item of cachedTripoList) {
+      if (seenUrls.has(item.modelUrl)) continue;
+      seenUrls.add(item.modelUrl);
+
+      results.push({
+        id: item.id,
+        name: item.name || 'Modelo Tripo 3D',
+        description: item.prompt || 'Modelo 3D generado con Tripo',
+        prompt: item.prompt,
+        category: item.category || 'prop',
+        modelUrl: item.modelUrl,
+        source: 'generation_cache',
+        createdAt: item.createdAt,
+      });
+    }
+
+    return results;
+  }
+
+  // Resolver ruta de archivo local para servirlo
+  getLocalFilePath(filename: string): string | null {
+    const safeName = path.basename(filename);
+    const p1 = path.join(this.worldsDir, safeName);
+    if (fs.existsSync(p1)) return p1;
+
+    const p2 = path.join(this.modelsDir, safeName);
+    if (fs.existsSync(p2)) return p2;
+
+    const p3 = path.join(this.worldLabsDir, safeName);
+    if (fs.existsSync(p3)) return p3;
+
+    const p4 = path.join(this.tripoDir, safeName);
+    if (fs.existsSync(p4)) return p4;
+
+    return null;
   }
 
   // --- Tripo 3D Cache ---
@@ -216,7 +420,7 @@ export class GenerationStorage {
           records.push(parsed);
         }
       } catch {
-        // Ignorar archivos corruptos
+        // Ignorar
       }
     }
 
@@ -248,7 +452,6 @@ export class GenerationStorage {
       if (match) return { modelUrl: match.modelUrl };
     }
 
-    // Si no hay coincidencia exacta, devolver el más reciente disponible
     const latest = list[0];
     return { modelUrl: latest.modelUrl };
   }

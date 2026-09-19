@@ -97,4 +97,29 @@ describe('Server Integration & Orchestrator Pipeline', () => {
     expect(finalJob.assets).toHaveLength(2);
     expect(finalJob.assets[0].status).toBe('READY');
   });
+
+  it('GET /api/storage/models debe responder con array de modelos disponibles', async () => {
+    const res = await server.inject({
+      method: 'GET',
+      url: '/api/storage/models',
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.models).toBeDefined();
+    expect(Array.isArray(body.models)).toBe(true);
+  });
+
+  it('GET /api/storage/worlds debe responder con array de mundos disponibles', async () => {
+    const res = await server.inject({
+      method: 'GET',
+      url: '/api/storage/worlds',
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.worlds).toBeDefined();
+    expect(Array.isArray(body.worlds)).toBe(true);
+    expect(body.worlds.length).toBeGreaterThanOrEqual(1);
+  });
 });

@@ -96,6 +96,43 @@ describe('GenerationStorage & Automatic Cache/Fallback System', () => {
     expect(fallbackId?.modelUrl).toBe('https://cdn.tripo3d.ai/models/chest-123.glb');
   });
 
+  it('debe listar modelos guardados tanto locales en storage/models como de la caché de Tripo', async () => {
+    // 1. Guardar modelo en caché de Tripo
+    await storage.saveTripo(
+      {
+        id: 'cup-001',
+        name: 'Taza de Café',
+        prompt: 'Ceramic coffee cup',
+        category: 'prop',
+        position: { x: 0, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+      { modelUrl: 'https://cdn.tripo3d.ai/models/cup.glb' }
+    );
+
+    // 2. Crear archivo local simulado en storage/models/
+    const modelsDir = storage.getModelsDir();
+    await fs.promises.writeFile(path.join(modelsDir, 'dragon.glb'), 'fake-glb-binary-data');
+
+    const allModels = await storage.listAllSavedModels();
+    expect(allModels.length).toBeGreaterThanOrEqual(2);
+
+    const localModel = allModels.find((m) => m.id === 'local-model-dragon.glb');
+    expect(localModel).toBeDefined();
+    expect(localModel?.source).toBe('local_file');
+    expect(localModel?.modelUrl).toBe('/api/storage/files/dragon.glb');
+
+    const tripoModel = allModels.find((m) => m.id === 'cup-001');
+    expect(tripoModel).toBeDefined();
+    expect(tripoModel?.source).toBe('generation_cache');
+    expect(tripoModel?.name).toBe('Taza de Café');
+
+    // Verificar que getLocalFilePath resuelve el archivo en storage/models
+    const resolvedPath = storage.getLocalFilePath('dragon.glb');
+    expect(resolvedPath).toBe(path.join(modelsDir, 'dragon.glb'));
+  });
+
   it('HttpWorldLabsProvider debe recurrir al almacenamiento si la API falla o no hay tokens', async () => {
     // 1. Guardar primero un entorno de prueba en la caché local
     await storage.saveWorldLabs(

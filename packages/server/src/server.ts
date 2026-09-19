@@ -7,6 +7,8 @@
 
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { WorldPromptInputSchema } from '@wordsmith/shared';
 import { GenerationOrchestrator } from './application/orchestrator.js';
 import { ProviderFactory } from './infrastructure/providerFactory.js';
@@ -14,12 +16,14 @@ import {
   InMemoryJobRepository,
   MemoryEventPublisher,
 } from './infrastructure/mockProviders.js';
+import { GenerationStorage } from './infrastructure/generationStorage.js';
 
 export function buildServer(orchestrator?: GenerationOrchestrator, eventPublisher?: MemoryEventPublisher): FastifyInstance {
   const server = Fastify({ logger: false });
 
   const publisher = eventPublisher ?? new MemoryEventPublisher();
   const repo = new InMemoryJobRepository();
+  const storage = new GenerationStorage();
   const orch =
     orchestrator ??
     new GenerationOrchestrator({
@@ -37,6 +41,82 @@ export function buildServer(orchestrator?: GenerationOrchestrator, eventPublishe
   // Health check
   server.get('/health', async () => {
     return { status: 'ok', service: 'wordsmith-orchestrator', timestamp: new Date().toISOString() };
+  });
+
+  // Listar todos los mundos guardados (.spz, .glb y caché de generaciones)
+  server.get('/api/storage/worlds', async () => {
+    const worlds = await storage.listAllSavedWorlds();
+    return { worlds };
+  });
+
+  // Listar todos los modelos 3D guardados (archivos .glb en storage/models y caché de Tripo)
+  server.get('/api/storage/models', async () => {
+    const models = await storage.listAllSavedModels();
+    return { models };
+  });
+
+  // Servir archivos locales (.spz, .splat, .glb)
+  server.get('/api/storage/files/:filename', async (request, reply) => {
+    const { filename } = request.params as { filename: string };
+    const filePath = storage.getLocalFilePath(filename);
+
+    if (!filePath || !fs.existsSync(filePath)) {
+      return reply.status(404).send({ error: `File '${filename}' not found in storage.` });
+    }
+
+    const ext = path.extname(filename).toLowerCase();
+    let contentType = 'application/octet-stream';
+    if (ext === '.glb') contentType = 'model/gltf-binary';
+    else if (ext === '.json') contentType = 'application/json';
+
+    reply.header('Content-Type', contentType);
+    reply.header('Access-Control-Allow-Origin', '*');
+    const stream = fs.createReadStream(filePath);
+    return reply.send(stream);
+  });
+
+  // Obtener escenario de referencia guardado por defecto
+  server.get('/api/storage/reference', async () => {
+    return {
+      worldSpec: {
+        version: '1.0.0',
+        title: 'Parque Infantil (Escenario de Referencia)',
+        description: 'Parque infantil colorido y soleado con toboganes, columpios, arenero y árboles verdes en un parque público.',
+        environment: {
+          prompt: 'Parque infantil colorido y soleado con toboganes, columpios, arenero y árboles verdes en un parque público.',
+          theme: 'playground',
+          lighting: 'day',
+          skyboxColor: '#87ceeb',
+        },
+        assets: [
+          {
+            id: 'slide-1',
+            name: 'Tobogán Infantil',
+            prompt: 'Colorful red and yellow playground slide for kids',
+            category: 'architecture',
+            position: { x: -2, y: 0, z: -1 },
+            rotation: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+            anchorToGround: true,
+          },
+          {
+            id: 'swings-1',
+            name: 'Columpios',
+            prompt: 'Metal swing set with rubber seats in a park',
+            category: 'architecture',
+            position: { x: 2, y: 0, z: -2 },
+            rotation: { x: 0, y: 0.3, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+            anchorToGround: true,
+          },
+        ],
+      },
+      environment: {
+        status: 'READY',
+        sceneUrl: 'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/5cc52299-dd1e-40dd-b325-4762fce22f4b_ceramic_500k.spz',
+        previewUrl: 'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/c82503bc-265c-4d97-981e-0adca15df304_sand_mpi/thumbnail.webp',
+      },
+    };
   });
 
   // Iniciar generación de mundo
