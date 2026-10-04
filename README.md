@@ -3,6 +3,7 @@
 > **AI-Native 3D World Director** — Transform a single natural language prompt into an interactive, composed 3D world explorable directly in your web browser.
 
 [![Español README](https://img.shields.io/badge/Idioma-Español%20(Secundario)-emerald.svg)](./README.es.md)
+[![Changelog](https://img.shields.io/badge/Changelog-v0.3.0-orange.svg)](./CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-indigo.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18-cyan.svg)](https://reactjs.org/)
@@ -12,7 +13,8 @@
 
 ---
 
-> 🇪🇸 **Leer en Español**: [README en Español](./README.es.md)
+> 🇪🇸 **Leer en Español**: [README en Español](./README.es.md) · [Changelog en Español](./CHANGELOG.es.md)  
+> 📜 **Release Notes & History**: [English Changelog](./CHANGELOG.md)
 
 ---
 

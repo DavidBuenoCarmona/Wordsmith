@@ -1,6 +1,6 @@
 {
   "name": "wordsmith-root",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "AI-native 3D world generator that turns a single natural language prompt into an interactive, composed 3D scene using World Labs and Tripo.",
   "workspaces": [
