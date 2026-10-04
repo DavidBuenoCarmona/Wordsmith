@@ -56,6 +56,7 @@ export class WorldViewer3D {
   private ktx2Loader: KTX2Loader | null = null;
   private sparkRenderer: InstanceType<typeof SparkRenderer> | null = null;
   private interlacer: InterlaceRenderer | null = null;
+  private isInterlaceActive = false;
   private groundLevelY = -1.5; // Altura estándar del suelo (por defecto -1.5m en Gaussian Splats de World Labs)
 
   // Gizmo de Transformación & Selección
@@ -149,13 +150,15 @@ export class WorldViewer3D {
         this.renderer.capabilities?.isWebGL2 &&
         this.renderer.extensions?.has('EXT_color_buffer_float')
       ) {
+        const initialMode = this.options?.interlaceRenderOptions?.mode ?? '2d';
         this.interlacer = new InterlaceRenderer(this.renderer, {
           calibration: this.options?.interlaceCalibration,
           render: {
-            mode: '2d',
+            mode: initialMode,
             ...this.options?.interlaceRenderOptions,
           },
         });
+        this.isInterlaceActive = initialMode !== '2d';
       }
     } catch (e) {
       console.warn('⚠️ [InterlaceRenderer] Inicialización:', e);
@@ -1108,6 +1111,7 @@ export class WorldViewer3D {
   public setInterlaceMode(mode: '2d' | 'interlaced' | 'view'): void {
     if (this.interlacer) {
       this.interlacer.setOptions({ mode });
+      this.isInterlaceActive = mode !== '2d';
     }
   }
 
@@ -1124,6 +1128,9 @@ export class WorldViewer3D {
   public setInterlaceOptions(options: Partial<RenderOptions>): void {
     if (this.interlacer) {
       this.interlacer.setOptions(options);
+      if (options.mode !== undefined) {
+        this.isInterlaceActive = options.mode !== '2d';
+      }
     }
   }
 
@@ -1134,6 +1141,8 @@ export class WorldViewer3D {
   public importInterlaceProfile(profile: string | object): void {
     if (this.interlacer) {
       this.interlacer.importProfile(profile);
+      const current = this.interlacer.getProfile();
+      this.isInterlaceActive = current.render.mode !== '2d';
     }
   }
 
@@ -1151,9 +1160,12 @@ export class WorldViewer3D {
     // Actualizar navegación WASD
     this.updateNavigation(deltaTime);
 
-    if (this.interlacer) {
+    if (this.interlacer && this.isInterlaceActive) {
       this.interlacer.render(this.scene, this.camera);
     } else {
+      if (this.renderer.getRenderTarget && this.renderer.getRenderTarget() !== null) {
+        this.renderer.setRenderTarget(null);
+      }
       this.renderer.render(this.scene, this.camera);
     }
 

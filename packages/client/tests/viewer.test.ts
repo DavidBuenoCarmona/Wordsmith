@@ -366,5 +366,17 @@ describe('WorldViewer3D - Transform Gizmo & Selection (Unit & Integration)', () 
     expect((viewer as any).defaultGround.visible).toBe(true);
     expect((viewer as any).gridHelper.visible).toBe(true);
   });
+
+  it('debe mantener desactivado el entrelazado en modo 2D estándar para evitar borrosidad', () => {
+    expect((viewer as any).isInterlaceActive).toBe(false);
+
+    viewer.setInterlaceMode('interlaced');
+    if ((viewer as any).interlacer) {
+      expect((viewer as any).isInterlaceActive).toBe(true);
+    }
+
+    viewer.setInterlaceMode('2d');
+    expect((viewer as any).isInterlaceActive).toBe(false);
+  });
 });
 
