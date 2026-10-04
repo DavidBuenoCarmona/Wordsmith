@@ -15,9 +15,9 @@ interface PromptBarProps {
 }
 
 const PRESET_PROMPTS = [
-  'Isla pirata abandonada con galeón hundido y cofre de oro',
-  'Estación espacial cyberpunk con androide y módulo de energía',
-  'Bosque místico con cristales flotantes y monolito antiguo',
+  'Abandoned pirate island with sunken galleon and treasure chest',
+  'Cyberpunk space station with android worker and power core',
+  'Mystic forest with floating crystals and ancient stone monolith',
 ];
 
 export const PromptBar: React.FC<PromptBarProps> = ({ onGenerate, isGenerating }) => {
@@ -50,7 +50,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({ onGenerate, isGenerating }
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => e.stopPropagation()}
           onKeyUp={(e) => e.stopPropagation()}
-          placeholder="Describe el mundo 3D que querés crear (ej: Isla pirata con tesoro)..."
+          placeholder="Describe the 3D world you want to build (e.g. Pirate island with treasure)..."
           disabled={isGenerating}
           className="flex-1 bg-transparent px-3 py-2 text-sm md:text-base text-slate-100 placeholder-slate-400 focus:outline-none disabled:opacity-50"
         />
@@ -60,9 +60,9 @@ export const PromptBar: React.FC<PromptBarProps> = ({ onGenerate, isGenerating }
           disabled={isGenerating}
           className="bg-slate-800 text-xs text-slate-300 px-3 py-2 rounded-xl border border-slate-700 focus:outline-none"
         >
-          <option value="stylized">Estilizado</option>
-          <option value="fantasy">Fantasía</option>
-          <option value="realistic">Realista</option>
+          <option value="stylized">Stylized</option>
+          <option value="fantasy">Fantasy</option>
+          <option value="realistic">Realistic</option>
         </select>
         <button
           type="submit"
@@ -70,13 +70,13 @@ export const PromptBar: React.FC<PromptBarProps> = ({ onGenerate, isGenerating }
           className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium text-sm rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Sparkles className="w-4 h-4" />
-          <span>{isGenerating ? 'Generando...' : 'Generar'}</span>
+          <span>{isGenerating ? 'Generating...' : 'Generate'}</span>
         </button>
       </form>
 
-      {/* Sugerencias rápidas */}
+      {/* Quick suggestions */}
       <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-400">
-        <span>Ideas rápidas:</span>
+        <span>Quick ideas:</span>
         {PRESET_PROMPTS.map((p, i) => (
           <button
             key={i}

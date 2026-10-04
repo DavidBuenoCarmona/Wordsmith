@@ -78,20 +78,20 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) =>
     const customModel: SavedModel = {
       id: `blob-${Date.now()}`,
       name: file.name.replace(/\.[^/.]+$/, ''),
-      description: `Archivo GLB cargado desde navegador (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
+      description: `GLB file loaded from browser (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
       modelUrl: objectUrl,
       source: 'local_file',
     };
 
     onSpawnModel(customModel);
     setIsOpen(false);
-    // Limpiar input
+    // Clear input
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
     <div ref={dropdownRef} className="relative z-30">
-      {/* Input oculto para subir archivos GLB directos */}
+      {/* Hidden input for uploading GLB files */}
       <input
         ref={fileInputRef}
         type="file"
@@ -106,7 +106,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) =>
         className="flex items-center gap-2 bg-slate-900/85 hover:bg-slate-850 backdrop-blur-md px-3.5 py-2 rounded-xl border border-slate-750 text-xs text-white shadow-xl transition-all active:scale-95"
       >
         <Box className="w-3.5 h-3.5 text-pink-400" />
-        <span className="font-medium">Modelos 3D (GLB)</span>
+        <span className="font-medium">3D Models (GLB)</span>
         <ChevronDown
           className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
             isOpen ? 'rotate-180' : ''
@@ -118,22 +118,22 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) =>
       {isOpen && (
         <div className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-slate-900/95 backdrop-blur-xl border border-slate-750 rounded-2xl shadow-2xl p-2.5 animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            <span>Modelos Disponibles ({models.length})</span>
+            <span>Available Models ({models.length})</span>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                title="Abrir archivo 3D (.glb / .gltf) desde tu equipo"
+                title="Open 3D model (.glb / .gltf) from your device"
                 className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-pink-950/70 hover:bg-pink-900 border border-pink-800/60 text-pink-300 text-[10px] transition-colors"
               >
                 <FolderOpen className="w-3 h-3" />
-                <span>Abrir GLB</span>
+                <span>Open GLB</span>
               </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   fetchModels();
                 }}
-                title="Actualizar lista de modelos"
+                title="Refresh models list"
                 className="hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800 text-slate-400"
               >
                 <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
@@ -145,9 +145,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) =>
             {models.length === 0 ? (
               <div className="py-6 px-4 text-center space-y-2">
                 <Box className="w-8 h-8 text-slate-600 mx-auto" />
-                <p className="text-xs text-slate-300 font-medium">No hay modelos GLB guardados aún</p>
+                <p className="text-xs text-slate-300 font-medium">No saved GLB models yet</p>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Colocá tus archivos <code className="text-indigo-400 font-mono">.glb</code> de Tripo 3D en <code className="text-indigo-400 font-mono">storage/models/</code> o hacé clic en <b>Subir GLB</b>.
+                  Place your Tripo 3D <code className="text-indigo-400 font-mono">.glb</code> files in <code className="text-indigo-400 font-mono">storage/models/</code> or click <b>Open GLB</b>.
                 </p>
               </div>
             ) : (
@@ -156,7 +156,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) =>
                 return (
                   <div
                     key={m.id}
-                    className="p-2.5 rounded-xl transition-all flex items-start gap-2.5 bg-slate-850/60 hover:bg-slate-800/80 border border-slate-750/50 group"
+                    className="p-2.5 rounded-xl transition-all flex items-start gap-2.5 bg-slate-855/60 hover:bg-slate-800/80 border border-slate-750/50 group"
                   >
                     <div className="mt-0.5">
                       {m.source === 'local_file' ? (
@@ -184,7 +184,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) =>
 
                     <button
                       onClick={() => handleSpawn(m)}
-                      title="Agregar al mundo en la posición actual"
+                      title="Add to world at current position"
                       className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
                         isJustAdded
                           ? 'bg-emerald-600 text-white shadow-md scale-95'
@@ -194,12 +194,12 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) =>
                       {isJustAdded ? (
                         <>
                           <Check className="w-3.5 h-3.5" />
-                          <span>¡Agregado!</span>
+                          <span>Added!</span>
                         </>
                       ) : (
                         <>
                           <Plus className="w-3.5 h-3.5" />
-                          <span>Agregar</span>
+                          <span>Add</span>
                         </>
                       )}
                     </button>
@@ -211,7 +211,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) =>
 
           <div className="p-2 mt-1 border-t border-slate-800/80 text-[10px] text-slate-400 flex items-center justify-between">
             <span>📁 storage/models/</span>
-            <span className="text-pink-400 font-mono">Exportaciones Tripo (.glb)</span>
+            <span className="text-pink-400 font-mono">Tripo Exports (.glb)</span>
           </div>
         </div>
       )}

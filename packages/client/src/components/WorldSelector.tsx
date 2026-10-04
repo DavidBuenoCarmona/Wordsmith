@@ -83,7 +83,7 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
     const customWorld: SavedWorld = {
       id: `blob-world-${Date.now()}`,
       name: file.name.replace(/\.[^/.]+$/, ''),
-      description: `Archivo ${ext?.toUpperCase()} abierto en navegador (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
+      description: `${ext?.toUpperCase()} file opened in browser (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
       sceneUrl: objectUrl,
       type,
       source: 'local_file',
@@ -98,7 +98,7 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
 
   return (
     <div ref={dropdownRef} className="relative z-30">
-      {/* Input oculto para abrir mapas locales */}
+      {/* Hidden input for local maps */}
       <input
         ref={fileInputRef}
         type="file"
@@ -114,7 +114,7 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
       >
         <Globe className="w-3.5 h-3.5 text-indigo-400" />
         <span className="font-medium max-w-[150px] sm:max-w-[200px] truncate">
-          {activeWorld?.name || 'Seleccionar Mapa'}
+          {activeWorld?.name || 'Select Map'}
         </span>
         <ChevronDown
           className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
@@ -127,22 +127,22 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
       {isOpen && (
         <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 bg-slate-900/95 backdrop-blur-xl border border-slate-750 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            <span>Mundos ({worlds.length})</span>
+            <span>Worlds ({worlds.length})</span>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                title="Abrir mapa desde tu equipo (.spz, .ply, .glb)"
+                title="Open map from your device (.spz, .ply, .glb)"
                 className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-800/60 text-indigo-300 text-[10px] transition-colors"
               >
                 <FolderOpen className="w-3 h-3" />
-                <span>Abrir Mapa</span>
+                <span>Open Map</span>
               </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   fetchWorlds();
                 }}
-                title="Actualizar lista de mundos"
+                title="Refresh worlds list"
                 className="hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800"
               >
                 <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
@@ -204,7 +204,7 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
 
           <div className="p-2 border-t border-slate-800/80 text-[10px] text-slate-400 flex items-center justify-between">
             <span>📁 storage/worlds/</span>
-            <span className="text-indigo-400 font-mono">Soporta .spz, .ply y .glb</span>
+            <span className="text-indigo-400 font-mono">Supports .spz, .ply and .glb</span>
           </div>
         </div>
       )}

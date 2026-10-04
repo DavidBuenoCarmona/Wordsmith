@@ -52,7 +52,7 @@ export class HttpWorldLabsProvider implements IWorldLabsProvider {
   ) {
     this.baseUrl = (baseUrl || process.env.WORLD_LABS_BASE_URL || 'https://api.worldlabs.ai/marble/').replace(/\/$/, '');
     this.pollIntervalMs = pollIntervalMs ?? (Number(process.env.WORLD_LABS_POLL_INTERVAL_MS) || 4000);
-    this.maxRetries = maxRetries ?? (Number(process.env.WORLD_LABS_MAX_RETRIES) || 90); // 90 * 4s = 360s (6 min)
+    this.maxRetries = maxRetries ?? (Number(process.env.WORLD_LABS_MAX_RETRIES) || 180); // 180 * 4s = 720s (12 min)
     this.storage = storage ?? new GenerationStorage();
   }
 

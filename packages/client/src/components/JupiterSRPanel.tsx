@@ -142,7 +142,7 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
         setProfile(parsed);
         localStorage.setItem(STORAGE_KEY, content);
       } catch (err) {
-        alert('Error al importar el perfil JSON de JupiterSR. Verifique el formato.');
+        alert('Error importing JupiterSR JSON profile. Please check file format.');
       }
     };
     reader.readAsText(file);
@@ -177,10 +177,10 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
       />
 
       <div className="flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-slate-750 shadow-lg">
-        {/* Toggle Rápido 2D / 3D Interlaced */}
+        {/* Quick Toggle 2D / 3D Interlaced */}
         <button
           onClick={() => handleModeChange(isInterlaced ? '2d' : 'interlaced')}
-          title={isInterlaced ? 'Cambiar a modo estándar 2D' : 'Activar entrelazado 3D para monitor JupiterSR'}
+          title={isInterlaced ? 'Switch to standard 2D mode' : 'Enable 3D interlacing for JupiterSR display'}
           className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
             isInterlaced
               ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-950/50'
@@ -191,17 +191,17 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
           <span>{isInterlaced ? 'Jupiter 3D: ON' : 'Jupiter 3D: OFF'}</span>
         </button>
 
-        {/* Botón de Calibración / Configuración */}
+        {/* Calibration / Settings Button */}
         <button
           onClick={() => setIsOpen(true)}
-          title="Ajustes de Calibración Óptica y Render de JupiterSR"
+          title="JupiterSR Optical Calibration & Render Settings"
           className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
         >
           <Sliders className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Modal de Calibración & Parámetros */}
+      {/* Calibration & Parameter Modal */}
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
           <div
@@ -216,13 +216,13 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
-                    JupiterSR · Configuración 3D
+                    JupiterSR · 3D Settings
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono">
                       v1.0.0
                     </span>
                   </h2>
                   <p className="text-[11px] text-slate-400">
-                    Entrelazado Subpíxel Óptico para Displays Autoestereoscópicos
+                    Optical Subpixel Interlacing for Autostereoscopic Displays
                   </p>
                 </div>
               </div>
@@ -235,7 +235,7 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
               </button>
             </div>
 
-            {/* Pestañas de Navegación */}
+            {/* Navigation Tabs */}
             <div className="flex border-b border-slate-800 bg-slate-900/60 px-4 pt-2 gap-2">
               <button
                 onClick={() => setActiveTab('render')}
@@ -257,16 +257,16 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
                 }`}
               >
                 <Sliders className="w-3.5 h-3.5" />
-                Calibración Óptica
+                Optical Calibration
               </button>
             </div>
 
-            {/* Cuerpo del Formulario */}
+            {/* Form Body */}
             <div className="p-4 overflow-y-auto space-y-4 flex-1 text-xs">
               {activeTab === 'render' && (
                 <div className="space-y-3.5">
                   <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 space-y-2.5">
-                    <label className="block text-slate-300 font-semibold">Modo de visualización</label>
+                    <label className="block text-slate-300 font-semibold">Display Mode</label>
                     <div className="grid grid-cols-3 gap-2">
                       {(['interlaced', '2d', 'view'] as const).map((mode) => (
                         <button
@@ -278,7 +278,7 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
                               : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-850'
                           }`}
                         >
-                          {mode === 'interlaced' ? '3D Interlaced' : mode === '2d' ? '2D Estándar' : 'Single View'}
+                          {mode === 'interlaced' ? '3D Interlaced' : mode === '2d' ? 'Standard 2D' : 'Single View'}
                         </button>
                       ))}
                     </div>
@@ -286,7 +286,7 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-slate-300 font-medium mb-1">Vistas Renderizadas (1-30)</label>
+                      <label className="block text-slate-300 font-medium mb-1">Rendered Views (1-30)</label>
                       <input
                         type="number"
                         min="1"
@@ -295,11 +295,11 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
                         onChange={(e) => handleRenderOptionChange('views', parseInt(e.target.value, 10) || 9)}
                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 focus:outline-none focus:border-emerald-500"
                       />
-                      <span className="text-[10px] text-slate-500">9 = Rápido / 30 = Máxima suavidad</span>
+                      <span className="text-[10px] text-slate-500">9 = Fast / 30 = Max Smoothness</span>
                     </div>
 
                     <div>
-                      <label className="block text-slate-300 font-medium mb-1">Ancho de Vista (px)</label>
+                      <label className="block text-slate-300 font-medium mb-1">View Width (px)</label>
                       <input
                         type="number"
                         min="100"
@@ -309,13 +309,13 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
                         onChange={(e) => handleRenderOptionChange('viewWidth', parseInt(e.target.value, 10) || 640)}
                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 focus:outline-none focus:border-emerald-500"
                       />
-                      <span className="text-[10px] text-slate-500">Resolución buffer por vista</span>
+                      <span className="text-[10px] text-slate-500">Buffer resolution per view</span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-slate-300 font-medium mb-1">Separación Cámaras (Spacing)</label>
+                      <label className="block text-slate-300 font-medium mb-1">Camera Spacing (Baseline)</label>
                       <input
                         type="number"
                         min="0"
@@ -325,11 +325,11 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
                         onChange={(e) => handleRenderOptionChange('viewSpacing', parseFloat(e.target.value) || 0.006)}
                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 focus:outline-none focus:border-emerald-500"
                       />
-                      <span className="text-[10px] text-slate-500">Intensidad del efecto 3D/paralaje</span>
+                      <span className="text-[10px] text-slate-500">3D depth and parallax intensity</span>
                     </div>
 
                     <div>
-                      <label className="block text-slate-300 font-medium mb-1">Distancia de Foco (Zero-Parallax)</label>
+                      <label className="block text-slate-300 font-medium mb-1">Focus Distance (Zero-Parallax)</label>
                       <input
                         type="number"
                         min="0.1"
@@ -339,7 +339,7 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
                         onChange={(e) => handleRenderOptionChange('focusDistance', parseFloat(e.target.value) || 3)}
                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 focus:outline-none focus:border-emerald-500"
                       />
-                      <span className="text-[10px] text-slate-500">Plano donde la imagen converge</span>
+                      <span className="text-[10px] text-slate-500">Plane where image converges</span>
                     </div>
                   </div>
                 </div>
@@ -350,7 +350,7 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
                   <div className="bg-amber-950/30 border border-amber-800/50 p-2.5 rounded-xl text-[11px] text-amber-200/90 flex items-start gap-2">
                     <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                     <span>
-                      Ajustá Pitch, Tan y Offset mirando fijamente el display JupiterSR (idealmente en Pantalla Completa).
+                      Adjust Pitch, Tan, and Offset while observing the JupiterSR display (ideally in Fullscreen).
                     </span>
                   </div>
 
@@ -391,7 +391,7 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
 
                   <div className="grid grid-cols-3 gap-2.5">
                     <div>
-                      <label className="block text-slate-300 font-medium mb-1">Orden de Vistas</label>
+                      <label className="block text-slate-300 font-medium mb-1">View Order</label>
                       <select
                         value={profile.calibration.order}
                         onChange={(e) => handleCalibrationChange('order', e.target.value as any)}
@@ -404,7 +404,7 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
                     </div>
 
                     <div>
-                      <label className="block text-slate-300 font-medium mb-1">Subpíxeles</label>
+                      <label className="block text-slate-300 font-medium mb-1">Subpixels</label>
                       <select
                         value={profile.calibration.subpixelOrder}
                         onChange={(e) => handleCalibrationChange('subpixelOrder', e.target.value as any)}
@@ -416,7 +416,7 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
                     </div>
 
                     <div>
-                      <label className="block text-slate-300 font-medium mb-1">Rotación</label>
+                      <label className="block text-slate-300 font-medium mb-1">Rotation</label>
                       <select
                         value={profile.calibration.rotation}
                         onChange={(e) => handleCalibrationChange('rotation', parseInt(e.target.value, 10) as any)}
@@ -433,30 +433,30 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
               )}
             </div>
 
-            {/* Footer con Acciones */}
+            {/* Footer with Actions */}
             <div className="p-4 border-t border-slate-800 bg-slate-950/70 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleExportProfile}
-                  title="Exportar perfil actual a archivo .json"
+                  title="Export current profile to a .json file"
                   className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-750 text-slate-300 px-3 py-1.5 rounded-lg font-medium transition-colors"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>Exportar</span>
+                  <span>Export</span>
                 </button>
 
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  title="Importar perfil desde archivo .json"
+                  title="Import profile from a .json file"
                   className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-750 text-slate-300 px-3 py-1.5 rounded-lg font-medium transition-colors"
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  <span>Importar</span>
+                  <span>Import</span>
                 </button>
 
                 <button
                   onClick={handleResetDefaults}
-                  title="Restablecer valores por defecto"
+                  title="Reset to default settings"
                   className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -466,7 +466,7 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleToggleFullscreen}
-                  title="Pantalla Completa (requerido para correcta calibración óptica)"
+                  title="Fullscreen mode (required for physical subpixel alignment)"
                   className="flex items-center gap-1.5 bg-indigo-950/80 hover:bg-indigo-900/90 text-indigo-300 border border-indigo-750 px-3 py-1.5 rounded-lg font-medium transition-colors"
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
@@ -477,7 +477,7 @@ export const JupiterSRPanel: React.FC<JupiterSRPanelProps> = ({ viewer }) => {
                   onClick={() => setIsOpen(false)}
                   className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-1.5 rounded-lg transition-colors shadow-lg shadow-emerald-950/50"
                 >
-                  Listo
+                  Done
                 </button>
               </div>
             </div>

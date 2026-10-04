@@ -29,21 +29,21 @@ export const AssetInspector: React.FC<AssetInspectorProps> = ({
         <h3 className="text-sm font-semibold truncate">{job.worldSpec.title}</h3>
       </div>
 
-      {/* Entorno */}
+      {/* Environment */}
       <div className="space-y-1">
-        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Entorno Base</span>
+        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Base Environment</span>
         <div className="p-2.5 bg-slate-800/60 rounded-xl border border-slate-700/40 text-xs space-y-1">
           <p className="font-medium text-slate-200">{job.worldSpec.environment.theme}</p>
           <div className="flex items-center justify-between text-[11px] text-slate-400">
-            <span>Iluminación: {job.worldSpec.environment.lighting}</span>
+            <span>Lighting: {job.worldSpec.environment.lighting}</span>
             <span className="flex items-center gap-1 text-emerald-400 font-medium">
-              <Check className="w-3 h-3" /> Listo
+              <Check className="w-3 h-3" /> Ready
             </span>
           </div>
         </div>
       </div>
 
-      {/* Assets 3D */}
+      {/* 3D Assets */}
       <div className="space-y-1.5">
         <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">
           Props & Assets ({job.worldSpec.assets.length})

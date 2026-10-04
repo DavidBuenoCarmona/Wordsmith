@@ -23,18 +23,24 @@ export interface WorldViewerOptions {
   onProgress?: (progress: number, detail: string) => void;
   onLoaded?: () => void;
   onError?: (error: string) => void;
-  onAssetSelected?: (assetId: string | null, position?: THREE.Vector3, rotation?: THREE.Euler) => void;
+  onAssetSelected?: (
+    assetId: string | null,
+    position?: THREE.Vector3,
+    rotation?: THREE.Euler,
+    scale?: THREE.Vector3
+  ) => void;
   onAssetTransformed?: (
     assetId: string,
     position: { x: number; y: number; z: number },
-    rotation: { x: number; y: number; z: number }
+    rotation: { x: number; y: number; z: number },
+    scale?: { x: number; y: number; z: number }
   ) => void;
   onAssetDeleted?: (assetId: string) => void;
   interlaceCalibration?: Partial<Calibration>;
   interlaceRenderOptions?: Partial<RenderOptions>;
 }
 
-export type TransformMode = 'translate' | 'rotate';
+export type TransformMode = 'translate' | 'rotate' | 'scale';
 
 export class WorldViewer3D {
   private scene: THREE.Scene;
@@ -194,7 +200,8 @@ export class WorldViewer3D {
             this.options?.onAssetTransformed?.(
               this.selectedAssetId,
               { x: group.position.x, y: group.position.y, z: group.position.z },
-              { x: group.rotation.x, y: group.rotation.y, z: group.rotation.z }
+              { x: group.rotation.x, y: group.rotation.y, z: group.rotation.z },
+              { x: group.scale.x, y: group.scale.y, z: group.scale.z }
             );
           }
         }
@@ -399,7 +406,8 @@ export class WorldViewer3D {
     this.options?.onAssetSelected?.(
       assetId,
       group.position.clone(),
-      group.rotation.clone()
+      group.rotation.clone(),
+      group.scale.clone()
     );
   }
 
@@ -437,17 +445,20 @@ export class WorldViewer3D {
     const group = this.assetMeshes.find((g) => g.name === this.selectedAssetId);
     if (!group) return;
 
-    // Calcular la mitad de la altura de la caja delimitadora del grupo para que la base quede sobre el suelo
-    let halfHeight = 0;
+    // Obtener la altura de la entidad para que quede perfectamente sobre el suelo teniendo en cuenta la escala
+    let entityHeight = group.userData?.entityHeight;
     if (group.children.length > 0) {
       const box = new THREE.Box3().setFromObject(group);
       if (Number.isFinite(box.min.y) && Number.isFinite(box.max.y)) {
-        halfHeight = (box.max.y - box.min.y) / 2;
+        entityHeight = box.max.y - box.min.y;
       }
+    } else if (entityHeight) {
+      entityHeight = entityHeight * group.scale.y;
     }
+    const heightOffset = entityHeight || 1.0;
 
     const groundY = this.getGroundHeightAt(group.position.x, group.position.z);
-    group.position.y = groundY + halfHeight;
+    group.position.y = groundY + heightOffset;
 
     if (this.selectionBoxHelper) {
       this.selectionBoxHelper.update();
@@ -456,7 +467,8 @@ export class WorldViewer3D {
     this.options?.onAssetTransformed?.(
       this.selectedAssetId,
       { x: group.position.x, y: group.position.y, z: group.position.z },
-      { x: group.rotation.x, y: group.rotation.y, z: group.rotation.z }
+      { x: group.rotation.x, y: group.rotation.y, z: group.rotation.z },
+      { x: group.scale.x, y: group.scale.y, z: group.scale.z }
     );
   }
 
@@ -568,26 +580,26 @@ export class WorldViewer3D {
             }
             const pct = Math.min(progress * 100, 99);
             const mb = (event.loaded / 1024 / 1024).toFixed(1);
-            this.options?.onProgress?.(pct, `Cargando splat 3D: ${mb} MB`);
+            this.options?.onProgress?.(pct, `Loading 3D Splat: ${mb} MB`);
           },
           onLoad: () => {
-            // Posición inicial de cámara una vez cargado el splat 3D
+            // Initial camera position once 3D splat is loaded
             this.camera.position.set(0, 0, 0);
             this.camera.lookAt(0, 0, -1);
             this.euler.setFromQuaternion(this.camera.quaternion, 'YXZ');
 
-            // En Gaussian Splats, el suelo físico respecto al ojo de cámara (0,0,0) está en -1.5m
+            // In Gaussian Splats, physical ground relative to camera eye (0,0,0) is at -1.5m
             this.setGroundLevel(-1.5);
 
             this.isLoadingEnvironment = false;
-            this.options?.onProgress?.(100, 'Mundo 3D Splat listo');
+            this.options?.onProgress?.(100, '3D Splat World Ready');
             this.options?.onLoaded?.();
             resolve();
           },
         });
 
-        // Marble SPZs usan orientación OpenCV (+Y down -> rotar Math.PI en X)
-        // Archivos .ply estándar ya tienen orientación nativa (+Y up en Three.js)
+        // Marble SPZs use OpenCV orientation (+Y down -> rotate Math.PI on X)
+        // Standard .ply files already have native orientation (+Y up in Three.js)
         if (!isPly) {
           splatMesh.rotation.x = Math.PI;
         } else {
@@ -597,23 +609,23 @@ export class WorldViewer3D {
         this.environmentMesh = splatMesh as unknown as THREE.Object3D;
         this.scene.add(this.environmentMesh);
 
-        // Ocultar grid genérico
+        // Hide default grid
         if (this.gridHelper) this.gridHelper.visible = false;
         if (this.defaultGround) this.defaultGround.visible = false;
       } catch (err) {
         this.isLoadingEnvironment = false;
-        console.warn('⚠️ [SplatMesh] Error cargando Splat:', err);
-        this.options?.onError?.(`Error al cargar Splat: ${err}`);
+        console.warn('⚠️ [SplatMesh] Error loading Splat:', err);
+        this.options?.onError?.(`Error loading Splat: ${err}`);
         reject(err);
       }
     });
   }
 
   /**
-   * Carga entorno mediante Panorama 360 esférico inmersivo
+   * Loads 360 equirectangular panoramic environment
    */
   private async loadPanoEnvironment(url: string): Promise<void> {
-    this.options?.onProgress?.(25, 'Cargando panorama 360...');
+    this.options?.onProgress?.(25, 'Loading 360 panorama...');
 
     return new Promise((resolve, reject) => {
       const textureLoader = new THREE.TextureLoader();
@@ -624,7 +636,7 @@ export class WorldViewer3D {
           texture.mapping = THREE.EquirectangularReflectionMapping;
 
           const sphereGeo = new THREE.SphereGeometry(150, 64, 40);
-          sphereGeo.scale(-1, 1, 1); // Invertir caras hacia el interior
+          sphereGeo.scale(-1, 1, 1);
           const sphereMat = new THREE.MeshBasicMaterial({ map: texture });
           const sphere = new THREE.Mesh(sphereGeo, sphereMat);
 
@@ -634,19 +646,19 @@ export class WorldViewer3D {
           this.setGroundLevel(-1.5);
 
           this.isLoadingEnvironment = false;
-          this.options?.onProgress?.(100, 'Panorama 360 listo');
+          this.options?.onProgress?.(100, '360 Panorama Ready');
           this.options?.onLoaded?.();
           resolve();
         },
         (event) => {
           if (event.lengthComputable) {
             const pct = Math.min((event.loaded / event.total) * 100, 99);
-            this.options?.onProgress?.(pct, `Cargando 360: ${pct.toFixed(0)}%`);
+            this.options?.onProgress?.(pct, `Loading 360: ${pct.toFixed(0)}%`);
           }
         },
         (err) => {
           this.isLoadingEnvironment = false;
-          this.options?.onError?.('Error al cargar textura panorámica');
+          this.options?.onError?.('Error loading panoramic texture');
           reject(err);
         }
       );
@@ -654,10 +666,10 @@ export class WorldViewer3D {
   }
 
   /**
-   * Carga entorno mediante GLTF / GLB Mesh
+   * Loads GLTF / GLB environment mesh
    */
   private async loadGlbEnvironment(url: string): Promise<void> {
-    this.options?.onProgress?.(15, 'Descargando mapa GLB...');
+    this.options?.onProgress?.(15, 'Downloading GLB map...');
 
     return new Promise((resolve, reject) => {
       this.gltfLoader.load(
@@ -691,11 +703,10 @@ export class WorldViewer3D {
           this.camera.lookAt(center.x, center.y + 1.0, center.z);
           this.euler.setFromQuaternion(this.camera.quaternion, 'YXZ');
 
-          // En mallas GLB el suelo es la base mínima de la geometría
           this.setGroundLevel(box.min.y);
 
           this.isLoadingEnvironment = false;
-          this.options?.onProgress?.(100, 'Mapa 3D listo');
+          this.options?.onProgress?.(100, '3D Map Ready');
           this.options?.onLoaded?.();
           resolve();
         },
@@ -703,12 +714,12 @@ export class WorldViewer3D {
           if (event.lengthComputable) {
             const pct = Math.min((event.loaded / event.total) * 100, 99);
             const mb = (event.loaded / 1024 / 1024).toFixed(1);
-            this.options?.onProgress?.(pct, `Cargando mapa GLB: ${mb} MB`);
+            this.options?.onProgress?.(pct, `Loading GLB map: ${mb} MB`);
           }
         },
         (err) => {
           this.isLoadingEnvironment = false;
-          this.options?.onError?.('Error al cargar mapa GLB');
+          this.options?.onError?.('Error loading GLB map');
           reject(err);
         }
       );
@@ -727,7 +738,8 @@ export class WorldViewer3D {
       this.gridHelper.position.y = this.groundLevelY + 0.005;
     }
     for (const group of this.assetMeshes) {
-      group.position.y = this.groundLevelY;
+      const entityHeight = group.userData?.entityHeight || 1.0;
+      group.position.y = this.groundLevelY + entityHeight;
     }
     if (this.selectionBoxHelper) {
       this.selectionBoxHelper.update();
@@ -785,7 +797,6 @@ export class WorldViewer3D {
     spec: WorldSpec['assets'][number]
   ): Promise<void> {
     const existingGroup = this.assetMeshes.find((g) => g.name === assetId);
-    const posY = this.groundLevelY + (spec.position.y || 0);
 
     return new Promise((resolve) => {
       this.gltfLoader.load(
@@ -809,7 +820,8 @@ export class WorldViewer3D {
           // Centrar la geometría interna en (0, 0, 0) del grupo para que el pivote y las flechas del gizmo salgan exactamente del centro visual del modelo
           const scaledBox = new THREE.Box3().setFromObject(model);
           const center = scaledBox.getCenter(new THREE.Vector3());
-          const halfHeight = (scaledBox.max.y - scaledBox.min.y) / 2;
+          const entityHeight = Math.max(scaledBox.max.y - scaledBox.min.y, 0.5);
+          const halfHeight = entityHeight / 2;
           model.position.sub(center);
 
           model.traverse((child) => {
@@ -829,7 +841,9 @@ export class WorldViewer3D {
             }
           });
 
-          const groupPosY = posY + halfHeight;
+          const groundY = this.getGroundHeightAt(spec.position.x, spec.position.z);
+          const baseGround = spec.anchorToGround !== false ? groundY : this.groundLevelY;
+          const groupPosY = baseGround + entityHeight + (spec.position.y || 0);
 
           if (existingGroup) {
             while (existingGroup.children.length > 0) {
@@ -839,6 +853,8 @@ export class WorldViewer3D {
               id: assetId,
               name: spec.name,
               url,
+              entityHeight,
+              halfHeight,
             };
             existingGroup.position.set(spec.position.x, groupPosY, spec.position.z);
             existingGroup.add(model);
@@ -849,6 +865,8 @@ export class WorldViewer3D {
               id: assetId,
               name: spec.name,
               url,
+              entityHeight,
+              halfHeight,
             };
             group.position.set(spec.position.x, groupPosY, spec.position.z);
             group.rotation.set(spec.rotation.x, spec.rotation.y, spec.rotation.z);
@@ -883,9 +901,9 @@ export class WorldViewer3D {
     customPosition?: { x: number; y: number; z: number }
   ): Promise<string> {
     const assetId = `model-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-    this.options?.onProgress?.(20, `Cargando modelo 3D: ${name || 'GLB'}...`);
+    this.options?.onProgress?.(20, `Loading 3D model: ${name || 'GLB'}...`);
 
-    // Posición horizontal (x, z) delante de la cámara
+    // Horizontal position (x, z) in front of camera
     let targetX: number;
     let targetZ: number;
     let targetY: number;
@@ -895,7 +913,6 @@ export class WorldViewer3D {
       targetY = customPosition.y;
       targetZ = customPosition.z;
     } else {
-      // Vector de dirección de la cámara en el espacio 3D
       const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
       if (forward.lengthSq() > 0.001) {
         forward.normalize();
@@ -903,7 +920,6 @@ export class WorldViewer3D {
         forward.set(0, 0, -1);
       }
 
-      // Spawnear a 3 metros directamente delante de la cámara y a la misma altura de la vista del usuario
       const spawnPos = this.camera.position.clone().add(forward.multiplyScalar(3.0));
       targetX = spawnPos.x;
       targetY = spawnPos.y;
@@ -916,7 +932,7 @@ export class WorldViewer3D {
         (gltf) => {
           const model = gltf.scene;
 
-          // Auto-escalar / normalizar si es gigantesco o minúsculo
+          // Auto-scale / normalize dimensions
           const box = new THREE.Box3().setFromObject(model);
           const size = box.getSize(new THREE.Vector3());
           const maxDim = Math.max(size.x, size.y, size.z);
@@ -930,9 +946,11 @@ export class WorldViewer3D {
 
           model.scale.set(scale, scale, scale);
 
-          // Centrar la geometría interna en (0, 0, 0) del grupo para que el pivote y las flechas del gizmo salgan exactamente del centro visual del modelo
+          // Center internal geometry at (0, 0, 0)
           const scaledBox = new THREE.Box3().setFromObject(model);
           const center = scaledBox.getCenter(new THREE.Vector3());
+          const entityHeight = Math.max(scaledBox.max.y - scaledBox.min.y, 0.5);
+          const halfHeight = entityHeight / 2;
           model.position.sub(center);
 
           model.traverse((child) => {
@@ -952,24 +970,31 @@ export class WorldViewer3D {
             }
           });
 
+          if (!customPosition) {
+            const groundY = this.getGroundHeightAt(targetX, targetZ);
+            targetY = groundY + entityHeight;
+          }
+
           const group = new THREE.Group();
           group.name = assetId;
           group.position.set(targetX, targetY, targetZ);
           group.userData = {
             id: assetId,
-            name: name || 'Modelo GLB',
+            name: name || 'GLB Model',
             url,
             isUserSpawned: true,
+            entityHeight,
+            halfHeight,
           };
           group.add(model);
 
           this.scene.add(group);
           this.assetMeshes.push(group);
 
-          // Auto-seleccionar el modelo recién spawneado
+          // Auto-select newly spawned model
           this.selectAsset(assetId);
 
-          this.options?.onProgress?.(100, `Modelo '${name || 'GLB'}' agregado sobre el plano de suelo`);
+          this.options?.onProgress?.(100, `Model '${name || 'GLB'}' added to scene`);
           if (typeof setTimeout !== 'undefined') {
             setTimeout(() => {
               this.options?.onLoaded?.();
@@ -983,12 +1008,12 @@ export class WorldViewer3D {
         (progress) => {
           if (progress.lengthComputable) {
             const pct = Math.min((progress.loaded / progress.total) * 100, 99);
-            this.options?.onProgress?.(pct, `Cargando modelo: ${pct.toFixed(0)}%`);
+            this.options?.onProgress?.(pct, `Loading model: ${pct.toFixed(0)}%`);
           }
         },
         (err) => {
-          console.warn(`⚠️ [GLTFLoader] Error al spawnear modelo '${url}':`, err);
-          this.options?.onError?.(`Error al cargar modelo: ${name || url}`);
+          console.warn(`⚠️ [GLTFLoader] Error spawning model '${url}':`, err);
+          this.options?.onError?.(`Error loading model: ${name || url}`);
           reject(err);
         }
       );
@@ -1024,7 +1049,8 @@ export class WorldViewer3D {
 
       if (!group) {
         const groundY = this.getGroundHeightAt(asset.position.x, asset.position.z);
-        const posY = asset.anchorToGround !== false ? groundY + asset.position.y : asset.position.y;
+        const estimatedHeight = 1.0;
+        const posY = asset.anchorToGround !== false ? groundY + estimatedHeight + asset.position.y : asset.position.y;
 
         group = new THREE.Group();
         group.name = asset.id;
@@ -1032,6 +1058,8 @@ export class WorldViewer3D {
           id: asset.id,
           name: asset.name,
           url: customModelUrl,
+          entityHeight: estimatedHeight,
+          halfHeight: estimatedHeight / 2,
         };
         group.position.set(asset.position.x, posY, asset.position.z);
         group.rotation.set(asset.rotation.x, asset.rotation.y, asset.rotation.z);

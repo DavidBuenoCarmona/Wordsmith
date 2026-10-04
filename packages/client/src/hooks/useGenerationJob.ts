@@ -41,7 +41,7 @@ export function useGenerationJob() {
 
         if (!res.ok) {
           const errData = await res.json();
-          throw new Error(errData.error || 'Error al iniciar la generación.');
+          throw new Error(errData.error || 'Failed to start generation.');
         }
 
         const job: GenerationJob = await res.json();
@@ -92,7 +92,7 @@ export function useGenerationJob() {
         };
       } catch (err) {
         setIsGenerating(false);
-        setError(err instanceof Error ? err.message : 'Error desconocido.');
+        setError(err instanceof Error ? err.message : 'Unknown error.');
       }
     },
     [cleanEventSource]

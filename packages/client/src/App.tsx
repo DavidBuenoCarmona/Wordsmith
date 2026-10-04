@@ -33,6 +33,7 @@ export const App: React.FC = () => {
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [selectedPosition, setSelectedPosition] = useState<{ x: number; y: number; z: number } | undefined>();
   const [selectedRotation, setSelectedRotation] = useState<{ x: number; y: number; z: number } | undefined>();
+  const [selectedScale, setSelectedScale] = useState<{ x: number; y: number; z: number } | undefined>();
   const [transformMode, setTransformMode] = useState<TransformMode>('translate');
 
   const { currentJob, isGenerating, error, startGeneration } = useGenerationJob();
@@ -43,6 +44,7 @@ export const App: React.FC = () => {
     setSelectedAssetId(null);
     setSelectedPosition(undefined);
     setSelectedRotation(undefined);
+    setSelectedScale(undefined);
     setActiveWorldUrl(null);
     if (viewerRef.current) {
       viewerRef.current.clearScene();
@@ -56,20 +58,27 @@ export const App: React.FC = () => {
         onProgress: (_pct, detail) => setMapStatus(detail),
         onLoaded: () => setMapStatus(null),
         onError: () => setMapStatus(null),
-        onAssetSelected: (assetId, pos, rot) => {
+        onAssetSelected: (assetId, pos, rot, scl) => {
           setSelectedAssetId(assetId);
           setSelectedPosition(pos ? { x: pos.x, y: pos.y, z: pos.z } : undefined);
           setSelectedRotation(rot ? { x: rot.x, y: rot.y, z: rot.z } : undefined);
+          setSelectedScale(scl ? { x: scl.x, y: scl.y, z: scl.z } : undefined);
         },
-        onAssetTransformed: (assetId, pos, rot) => {
+        onAssetTransformed: (assetId, pos, rot, scl) => {
           setSelectedPosition(pos);
           setSelectedRotation(rot);
+          if (scl) {
+            setSelectedScale(scl);
+          }
           const activeJob = currentJobRef.current;
           if (activeJob?.worldSpec) {
             const asset = activeJob.worldSpec.assets.find((a) => a.id === assetId);
             if (asset) {
               asset.position = { ...pos };
               asset.rotation = { ...rot };
+              if (scl) {
+                asset.scale = { ...scl };
+              }
             }
           }
         },
@@ -84,6 +93,7 @@ export const App: React.FC = () => {
           setSelectedAssetId(null);
           setSelectedPosition(undefined);
           setSelectedRotation(undefined);
+          setSelectedScale(undefined);
         },
       });
       viewerRef.current = viewer;
@@ -118,6 +128,10 @@ export const App: React.FC = () => {
         e.preventDefault();
         setTransformMode('rotate');
         viewerRef.current.setTransformMode('rotate');
+      } else if (e.code === 'KeyC') {
+        e.preventDefault();
+        setTransformMode('scale');
+        viewerRef.current.setTransformMode('scale');
       } else if (e.code === 'Escape') {
         e.preventDefault();
         viewerRef.current.deselectAsset();
@@ -203,7 +217,7 @@ export const App: React.FC = () => {
     const customWorld: SavedWorld = {
       id: `blob-world-${Date.now()}`,
       name: file.name.replace(/\.[^/.]+$/, ''),
-      description: `Mapa ${ext?.toUpperCase()} cargado en memoria (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
+      description: `${ext?.toUpperCase()} map loaded in memory (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
       sceneUrl: objectUrl,
       type,
       source: 'local_file',
@@ -214,7 +228,7 @@ export const App: React.FC = () => {
     if (mapFileInputRef.current) mapFileInputRef.current.value = '';
   };
 
-  // Cargar modelo / entidad 3D local (.glb, .gltf)
+  // Load local 3D model / entity (.glb, .gltf)
   const handleLoadModelFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !viewerRef.current) return;
@@ -223,7 +237,7 @@ export const App: React.FC = () => {
     const customModel: SavedModel = {
       id: `blob-model-${Date.now()}`,
       name: file.name.replace(/\.[^/.]+$/, ''),
-      description: `Modelo 3D cargado en memoria (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
+      description: `3D model loaded in memory (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
       modelUrl: objectUrl,
       source: 'local_file',
     };
@@ -237,7 +251,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans select-none">
-      {/* Inputs ocultos para carga de archivos locales efímeros */}
+      {/* Hidden inputs for local file loading */}
       <input
         ref={mapFileInputRef}
         type="file"
@@ -256,7 +270,7 @@ export const App: React.FC = () => {
       {/* Three.js Canvas Container */}
       <div ref={containerRef} className="absolute inset-0 w-full h-full z-0 cursor-grab active:cursor-grabbing" />
 
-      {/* Top Header - z-40 para que los desplegables queden siempre por encima del hint de navegación z-10 */}
+      {/* Top Header */}
       <header className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between pointer-events-none z-40">
         <div className="flex items-center gap-2.5 bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-800 pointer-events-auto shadow-xl">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center text-white shadow-lg">
@@ -278,15 +292,15 @@ export const App: React.FC = () => {
             </div>
           )}
 
-          {/* Menú Desplegable de Importación Directa */}
+          {/* Direct Import Dropdown Menu */}
           <div ref={importDropdownRef} className="relative z-50">
             <button
               onClick={() => setIsImportMenuOpen(!isImportMenuOpen)}
-              title="Importar mapa o entidad desde tu equipo sin guardarlo en el servidor"
+              title="Import map or 3D model directly from your device"
               className="flex items-center gap-1.5 bg-indigo-950/85 hover:bg-indigo-900/90 border border-indigo-700/60 backdrop-blur-md px-3.5 py-2 rounded-xl text-xs text-white shadow-xl transition-all active:scale-95"
             >
               <Upload className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="font-semibold">Importar</span>
+              <span className="font-semibold">Import</span>
               <ChevronDown
                 className={`w-3 h-3 text-indigo-300 transition-transform duration-200 ${
                   isImportMenuOpen ? 'rotate-180' : ''
@@ -307,8 +321,8 @@ export const App: React.FC = () => {
                     <Globe className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-xs font-semibold text-slate-100 block">Cargar Mapa</span>
-                    <span className="text-[10px] text-slate-400 block leading-tight">Archivos .spz, .ply, .glb o 360</span>
+                    <span className="text-xs font-semibold text-slate-100 block">Load Map</span>
+                    <span className="text-[10px] text-slate-400 block leading-tight">.spz, .ply, .glb or 360 files</span>
                   </div>
                 </button>
 
@@ -323,33 +337,33 @@ export const App: React.FC = () => {
                     <Box className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-xs font-semibold text-slate-100 block">Cargar Modelo</span>
-                    <span className="text-[10px] text-slate-400 block leading-tight">Entidad 3D (.glb / .gltf)</span>
+                    <span className="text-xs font-semibold text-slate-100 block">Load Model</span>
+                    <span className="text-[10px] text-slate-400 block leading-tight">3D entity (.glb / .gltf)</span>
                   </div>
                 </button>
               </div>
             )}
           </div>
 
-          {/* Selector de Mundos Guardados (.spz / .glb) */}
+          {/* Saved World Selector (.spz / .glb) */}
           <WorldSelector
             activeWorldUrl={activeWorldUrl}
             onSelectWorld={handleSelectWorld}
           />
 
-          {/* Selector e Inserción de Modelos GLB / Tripo 3D */}
+          {/* 3D Model Selector & Spawner (Tripo / GLB) */}
           <ModelSelector onSpawnModel={handleSpawnModel} />
 
-          {/* Panel y Toggle de 3D Autoestereoscópico JupiterSR */}
+          {/* JupiterSR Autostereoscopic 3D Panel */}
           <JupiterSRPanel viewer={viewerInstance} />
 
           <button
             onClick={() => viewerRef.current?.resetCamera()}
-            title="Resetear vista de cámara"
+            title="Reset camera view"
             className="flex items-center gap-1.5 bg-slate-900/80 hover:bg-slate-850 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-750 text-xs text-slate-300 transition-all shadow-lg active:scale-95"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Reset Vista</span>
+            <span className="hidden sm:inline">Reset View</span>
           </button>
 
           <div className="hidden lg:flex items-center gap-2 bg-slate-900/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800/80 text-xs text-slate-300">
@@ -359,10 +373,10 @@ export const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Navigation Hint (World Labs Developer Style) */}
+      {/* Navigation Hint */}
       <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-slate-900/85 border border-slate-800 text-slate-300 px-4 py-1.5 rounded-full text-xs backdrop-blur-md shadow-xl pointer-events-none z-10 flex items-center gap-2">
         <Navigation className="w-3.5 h-3.5 text-indigo-400" />
-        <span>Arrastrá para mirar · <b>WASD</b> volar · <b>Shift</b> acelerar</span>
+        <span>Drag to look · <b>WASD</b> fly · <b>Shift</b> speed boost</span>
       </div>
 
       {/* Floating Transform Toolbar when asset is selected */}
@@ -373,6 +387,7 @@ export const App: React.FC = () => {
           mode={transformMode}
           position={selectedPosition}
           rotation={selectedRotation}
+          scale={selectedScale}
           onModeChange={(m) => {
             setTransformMode(m);
             viewerRef.current?.setTransformMode(m);

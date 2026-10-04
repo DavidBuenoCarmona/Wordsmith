@@ -14,10 +14,10 @@ interface ProgressOverlayProps {
 }
 
 const PHASES = [
-  { id: 'ANALYZING', label: '1. Análisis Prompt (LLM)' },
-  { id: 'GENERATING_WORLD', label: '2. Entorno (World Labs)' },
-  { id: 'GENERATING_ASSETS', label: '3. Modelos 3D (Tripo)' },
-  { id: 'COMPOSING', label: '4. Composición Three.js' },
+  { id: 'ANALYZING', label: '1. Prompt Analysis (LLM)' },
+  { id: 'GENERATING_WORLD', label: '2. Environment (World Labs)' },
+  { id: 'GENERATING_ASSETS', label: '3. 3D Models (Tripo)' },
+  { id: 'COMPOSING', label: '4. Three.js Composition' },
 ];
 
 export const ProgressOverlay: React.FC<ProgressOverlayProps> = ({ job }) => {
@@ -36,12 +36,12 @@ export const ProgressOverlay: React.FC<ProgressOverlayProps> = ({ job }) => {
     <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full max-w-md bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl p-4 shadow-2xl space-y-3 z-20 animate-in fade-in zoom-in-95 duration-200">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">
-          Pipeline de Generación 3D
+          3D Generation Pipeline
         </span>
         <span className="text-xs font-bold text-slate-300">{job.progress}%</span>
       </div>
 
-      {/* Barra de progreso */}
+      {/* Progress Bar */}
       <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
         <div
           className="bg-gradient-to-r from-indigo-500 to-pink-500 h-2 transition-all duration-300 rounded-full"
@@ -51,15 +51,15 @@ export const ProgressOverlay: React.FC<ProgressOverlayProps> = ({ job }) => {
 
       <p className="text-xs text-slate-200 leading-relaxed">{job.message}</p>
 
-      {/* Estimación explicativa */}
+      {/* Helper Note */}
       <div className="flex items-start gap-2 text-[11px] text-slate-400 bg-slate-800/60 p-2 rounded-xl border border-slate-750/70">
         <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
         <span>
-          World Labs compila Gaussian Splatting volumétrico (<span className="text-indigo-300 font-mono">.spz</span>). La escena permanecerá limpia hasta que el mapa y los assets estén listos (~3 a 4 min).
+          World Labs generates volumetric Gaussian Splatting (<span className="text-indigo-300 font-mono">.spz</span>). The scene will remain clear until the terrain and 3D assets are ready (~3 to 4 min).
         </span>
       </div>
 
-      {/* Lista de Fases */}
+      {/* Phase List */}
       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
         {PHASES.map((p) => {
           const status = getPhaseStatus(p.id);

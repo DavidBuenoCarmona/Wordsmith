@@ -173,7 +173,8 @@ describe('WorldViewer3D - Transform Gizmo & Selection (Unit & Integration)', () 
     expect(onAssetSelected).toHaveBeenCalledWith(
       'test-chest-1',
       expect.any(THREE.Vector3),
-      expect.any(THREE.Euler)
+      expect.any(THREE.Euler),
+      expect.any(THREE.Vector3)
     );
 
     // Deseleccionar asset
@@ -182,9 +183,13 @@ describe('WorldViewer3D - Transform Gizmo & Selection (Unit & Integration)', () 
     expect(onAssetSelected).toHaveBeenCalledWith(null);
   });
 
-  it('debe cambiar el modo de transformación entre translate y rotate', () => {
+  it('debe cambiar el modo de transformación entre translate, rotate y scale', () => {
     viewer.setTransformMode('rotate');
+    expect((viewer as any).transformMode).toBe('rotate');
+    viewer.setTransformMode('scale');
+    expect((viewer as any).transformMode).toBe('scale');
     viewer.setTransformMode('translate');
+    expect((viewer as any).transformMode).toBe('translate');
   });
 
   it('debe ajustar la elevación al suelo con snapSelectedToGround()', () => {
@@ -223,13 +228,18 @@ describe('WorldViewer3D - Transform Gizmo & Selection (Unit & Integration)', () 
       'asset-floating',
       expect.objectContaining({
         x: 5,
-        y: viewer.getGroundLevel(),
+        y: viewer.getGroundLevel() + 1.0,
         z: 5,
       }),
       expect.objectContaining({
         x: 0,
         y: 0,
         z: 0,
+      }),
+      expect.objectContaining({
+        x: 1,
+        y: 1,
+        z: 1,
       })
     );
   });
@@ -276,7 +286,8 @@ describe('WorldViewer3D - Transform Gizmo & Selection (Unit & Integration)', () 
     expect(onAssetSelected).toHaveBeenLastCalledWith(
       'tree-1',
       expect.any(THREE.Vector3),
-      expect.any(THREE.Euler)
+      expect.any(THREE.Euler),
+      expect.any(THREE.Vector3)
     );
 
     viewer.selectAsset('rock-1');
@@ -284,7 +295,8 @@ describe('WorldViewer3D - Transform Gizmo & Selection (Unit & Integration)', () 
     expect(onAssetSelected).toHaveBeenLastCalledWith(
       'rock-1',
       expect.any(THREE.Vector3),
-      expect.any(THREE.Euler)
+      expect.any(THREE.Euler),
+      expect.any(THREE.Vector3)
     );
   });
 
@@ -327,8 +339,9 @@ describe('WorldViewer3D - Transform Gizmo & Selection (Unit & Integration)', () 
     expect((viewer as any).isDraggingGizmo).toBe(false);
     expect(onAssetTransformed).toHaveBeenCalledWith(
       'crystal-1',
-      expect.objectContaining({ x: 0, y: viewer.getGroundLevel(), z: 0 }),
-      expect.objectContaining({ x: 0, y: 0, z: 0 })
+      expect.objectContaining({ x: 0, y: viewer.getGroundLevel() + 1.0, z: 0 }),
+      expect.objectContaining({ x: 0, y: 0, z: 0 }),
+      expect.objectContaining({ x: 1, y: 1, z: 1 })
     );
   });
 
