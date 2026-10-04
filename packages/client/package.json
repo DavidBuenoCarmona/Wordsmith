@@ -11,6 +11,7 @@
   "dependencies": {
     "@sparkjsdev/spark": "^2.2.0",
     "@wordsmith/shared": "*",
+    "jupiter-interlace-sdk": "file:jupiter-interlace-sdk-1.0.0.tgz",
     "lucide-react": "^0.359.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

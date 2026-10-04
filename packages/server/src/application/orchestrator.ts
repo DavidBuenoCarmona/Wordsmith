@@ -86,10 +86,11 @@ export class GenerationOrchestrator {
 
     // Fase 1: Análisis y descomposición
     await this.updatePhase(job, 'ANALYZING', 15, 'Analizando prompt y descomponiendo escena 3D...');
-    console.log(`🧠 [Fase 1/4 - LLM] Descomponiendo prompt en WorldSpec...`);
+    console.log(`🧠 [Fase 1/3 - LLM] Descomponiendo prompt en WorldSpec...`);
     
     const worldSpec = await this.ctx.llmProvider.decomposePrompt(input);
     job.worldSpec = worldSpec;
+    job.environment = { status: 'PENDING' };
     job.assets = worldSpec.assets.map((a) => ({
       id: a.id,
       name: a.name,
@@ -100,26 +101,67 @@ export class GenerationOrchestrator {
     console.log(`   ✨ Mundo: "${worldSpec.title}" (Entorno: ${worldSpec.environment.theme})`);
     console.log(`   📦 Assets identificados (${worldSpec.assets.length}): ${worldSpec.assets.map((a) => a.name).join(', ')}`);
 
-    // Fase 2: Generación del entorno (World Labs)
-    await this.updatePhase(job, 'GENERATING_WORLD', 35, `Generando entorno 3D (${worldSpec.environment.theme})...`);
-    console.log(`🌍 [Fase 2/4 - World Labs] Solicitando generación del entorno...`);
-    
-    const envResult = await this.ctx.worldLabsProvider.generateEnvironment(worldSpec.environment);
-    job.environment = {
-      status: 'READY',
-      sceneUrl: envResult.sceneUrl,
-      previewUrl: envResult.previewUrl,
-    };
-    await this.ctx.jobRepository.update(job);
-    console.log(`   ✅ Entorno listo: ${envResult.sceneUrl}`);
+    // Fase 2: Generación concurrente (World Labs + Tripo 3D)
+    await this.updatePhase(
+      job,
+      'GENERATING_WORLD',
+      20,
+      `Generando entorno 3D y ${worldSpec.assets.length} assets en paralelo...`
+    );
+    console.log(`⚡ [Fase 2/3 - Generación Concurrente] Disparando World Labs y ${worldSpec.assets.length} assets de Tripo simultáneamente...`);
 
-    // Fase 3: Generación de Assets 3D (Tripo)
-    await this.updatePhase(job, 'GENERATING_ASSETS', 60, `Generando ${worldSpec.assets.length} assets 3D en paralelo...`);
-    console.log(`🧩 [Fase 3/4 - Tripo 3D] Generando ${worldSpec.assets.length} assets en paralelo...`);
-    
+    const totalTasks = 1 + worldSpec.assets.length;
+    let completedTasks = 0;
+    const baseProgress = 20;
+    const maxGenProgress = 85;
+    const progressPerTask = (maxGenProgress - baseProgress) / Math.max(totalTasks, 1);
+
+    const onTaskCompleted = async (itemDesc: string) => {
+      completedTasks++;
+      const currentProgress = Math.round(baseProgress + (completedTasks * progressPerTask));
+      const phase: GenerationJob['phase'] =
+        job.environment?.status === 'READY' ? 'GENERATING_ASSETS' : 'GENERATING_WORLD';
+      await this.updatePhase(
+        job,
+        phase,
+        currentProgress,
+        `Progreso: ${completedTasks}/${totalTasks} elementos listos (${itemDesc})`
+      );
+    };
+
+    // Tarea concurrente: Entorno (World Labs)
+    const worldLabsPromise = (async () => {
+      try {
+        console.log(`🌍 [World Labs] Solicitando generación del entorno...`);
+        job.environment = { status: 'GENERATING' };
+        await this.ctx.jobRepository.update(job);
+
+        const envResult = await this.ctx.worldLabsProvider.generateEnvironment(worldSpec.environment);
+        job.environment = {
+          status: 'READY',
+          sceneUrl: envResult.sceneUrl,
+          previewUrl: envResult.previewUrl,
+        };
+        console.log(`   ✅ [World Labs] Entorno listo: ${envResult.sceneUrl}`);
+      } catch (err) {
+        const errorText = err instanceof Error ? err.message : 'Error generando entorno';
+        console.error(`   ⚠️ [World Labs] Falló entorno: ${errorText}`);
+        job.environment = {
+          status: 'FAILED',
+          error: errorText,
+        };
+      } finally {
+        await onTaskCompleted('Entorno World Labs');
+      }
+    })();
+
+    // Tareas concurrentes: Assets 3D (Tripo)
     const assetPromises = worldSpec.assets.map(async (assetSpec, index) => {
       try {
         console.log(`   ⏳ [Tripo] Generando asset [${assetSpec.id}]: "${assetSpec.name}"...`);
+        job.assets[index].status = 'GENERATING';
+        await this.ctx.jobRepository.update(job);
+
         const assetResult = await this.ctx.tripoProvider.generateAsset(assetSpec);
         job.assets[index] = {
           id: assetSpec.id,
@@ -137,17 +179,19 @@ export class GenerationOrchestrator {
           status: 'FAILED',
           error: errorText,
         };
+      } finally {
+        await onTaskCompleted(`Asset ${assetSpec.name}`);
       }
     });
 
-    await Promise.all(assetPromises);
-    await this.ctx.jobRepository.update(job);
+    // Esperar a que TODAS las tareas concurrentes finalicen
+    await Promise.all([worldLabsPromise, ...assetPromises]);
 
-    // Fase 4: Composición
-    await this.updatePhase(job, 'COMPOSING', 85, 'Componiendo escena 3D y calculando anclajes espaciales...');
-    console.log(`🏗️ [Fase 4/4 - World Builder] Componiendo posiciones espaciales y anclajes en Three.js...`);
+    // Fase 3: Composición final
+    await this.updatePhase(job, 'COMPOSING', 90, 'Componiendo escena 3D y calculando anclajes espaciales...');
+    console.log(`🏗️ [Fase 3/3 - World Builder] Componiendo posiciones espaciales y anclajes en Three.js...`);
 
-    // Fase 5: Completado
+    // Finalizado
     await this.updatePhase(job, 'COMPLETED', 100, '¡Mundo 3D generado y listo para explorar!');
     console.log(`🎉 [Job Completado] ID: ${job.id} — Escena lista para renderizar.`);
     console.log(`────────────────────────────────────────────────────────────\n`);

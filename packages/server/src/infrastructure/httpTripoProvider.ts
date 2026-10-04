@@ -25,6 +25,8 @@ interface TripoTaskStatusResponse {
     progress: number;
     output?: {
       model?: string; // URL al archivo .glb
+      pbr_model?: string;
+      base_model?: string;
       rendered_image?: string;
     };
   };
@@ -43,9 +45,14 @@ export class HttpTripoProvider implements ITripoProvider {
     maxRetries?: number,
     storage?: GenerationStorage
   ) {
-    this.baseUrl = (baseUrl || process.env.TRIPO_BASE_URL || 'https://api.tripo3d.ai').replace(/\/$/, '');
+    let rawUrl = (baseUrl || process.env.TRIPO_BASE_URL || 'https://api.tripo3d.ai/v2/openapi')
+      .replace(/\/$/, '')
+      .replace('openapi.tripo3d.ai', 'api.tripo3d.ai')
+      .replace(/\/v3$/, '')
+      .replace(/\/v2\/openapi$/, '');
+    this.baseUrl = `${rawUrl}/v2/openapi`;
     this.pollIntervalMs = pollIntervalMs ?? (Number(process.env.TRIPO_POLL_INTERVAL_MS) || 2500);
-    this.maxRetries = maxRetries ?? (Number(process.env.TRIPO_MAX_RETRIES) || 40); // 40 * 2.5s = 100 segundos
+    this.maxRetries = maxRetries ?? (Number(process.env.TRIPO_MAX_RETRIES) || 60); // 60 * 2.5s = 150 segundos
     this.storage = storage ?? new GenerationStorage();
   }
 
@@ -67,10 +74,10 @@ export class HttpTripoProvider implements ITripoProvider {
   }
 
   private async executeGeneration(spec: WorldSpec['assets'][number]): Promise<{ modelUrl: string }> {
-    // 1. Iniciar tarea de generación text-to-model 
-    const startUrl = `${this.baseUrl}/generation/text-to-model`;
+    // 1. Iniciar tarea de generación text-to-model (OpenAPI v2)
+    const startUrl = `${this.baseUrl}/task`;
     const payload = {
-      model: "v3.1-20260211",
+      type: 'text_to_model',
       prompt: `${spec.prompt}, 3D game prop, stylized, centered`,
     };
 
@@ -111,10 +118,11 @@ export class HttpTripoProvider implements ITripoProvider {
 
       const statusJson = (await statusRes.json()) as TripoTaskStatusResponse;
       const { status, output } = statusJson.data;
+      const modelUrl = output?.pbr_model || output?.model || output?.base_model;
 
-      if (status === 'success' && output?.model) {
+      if (status === 'success' && modelUrl) {
         const result = {
-          modelUrl: output.model,
+          modelUrl,
         };
 
         // Guardar resultado exitoso en storage

@@ -51,8 +51,8 @@ export class HttpWorldLabsProvider implements IWorldLabsProvider {
     storage?: GenerationStorage
   ) {
     this.baseUrl = (baseUrl || process.env.WORLD_LABS_BASE_URL || 'https://api.worldlabs.ai/marble/').replace(/\/$/, '');
-    this.pollIntervalMs = pollIntervalMs ?? (Number(process.env.WORLD_LABS_POLL_INTERVAL_MS) || 5000);
-    this.maxRetries = maxRetries ?? (Number(process.env.WORLD_LABS_MAX_RETRIES) || 60); // 60 * 5s = 300s (5 min)
+    this.pollIntervalMs = pollIntervalMs ?? (Number(process.env.WORLD_LABS_POLL_INTERVAL_MS) || 4000);
+    this.maxRetries = maxRetries ?? (Number(process.env.WORLD_LABS_MAX_RETRIES) || 90); // 90 * 4s = 360s (6 min)
     this.storage = storage ?? new GenerationStorage();
   }
 
@@ -60,20 +60,7 @@ export class HttpWorldLabsProvider implements IWorldLabsProvider {
     sceneUrl: string;
     previewUrl?: string;
   }> {
-    try {
-      return await this.executeGeneration(spec);
-    } catch (error) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      console.warn(`⚠️ [World Labs API Error] ${errMsg}. Comprobando almacenamiento local por si no quedan tokens o es una prueba...`);
-
-      const fallback = await this.storage.getWorldLabsFallback(spec);
-      if (fallback) {
-        console.log(`📦 [World Labs Cache Fallback] Usando entorno guardado como base: ${fallback.sceneUrl}`);
-        return fallback;
-      }
-
-      throw error;
-    }
+    return await this.executeGeneration(spec);
   }
 
   private async executeGeneration(spec: WorldSpec['environment']): Promise<{
@@ -81,10 +68,15 @@ export class HttpWorldLabsProvider implements IWorldLabsProvider {
     previewUrl?: string;
   }> {
     // 1. Iniciar generación del entorno 3D en World Labs Marble API
+    // Enriquecer el prompt con directivas explícitas de solo paisaje/terreno y ambientación (sin estructuras ni props)
+    const negativeGuidance = 'pure landscape, terrain and ambient scenery only, empty environment, no man-made structures, no buildings, no play structures, no swings, no furniture, no vehicles, no people, no animals, no standalone props or equipment';
+    const cleanPrompt = spec.prompt.trim().replace(/[.,;]+$/, '');
+    const textPrompt = `${cleanPrompt}, ${negativeGuidance}`;
+
     const startUrl = `${this.baseUrl}/v1/worlds:generate`;
     const payload = {
       world_prompt: {
-        text_prompt: `${spec.prompt}`,
+        text_prompt: textPrompt,
         type: 'text',
       },
       theme: spec.theme,
@@ -115,6 +107,7 @@ export class HttpWorldLabsProvider implements IWorldLabsProvider {
     if (operationId) {
       const opUrl = `${this.baseUrl}/v1/operations/${operationId}`;
       let attempts = 0;
+      let isDone = false;
 
       while (attempts < this.maxRetries) {
         await new Promise((r) => setTimeout(r, this.pollIntervalMs));
@@ -135,6 +128,7 @@ export class HttpWorldLabsProvider implements IWorldLabsProvider {
         }
 
         if (opJson.done) {
+          isDone = true;
           break;
         }
 
@@ -142,50 +136,65 @@ export class HttpWorldLabsProvider implements IWorldLabsProvider {
           throw new Error(`[World Labs Failed] ${opJson.error}`);
         }
       }
-    }
 
-    // 3. Obtener detalles del World 3D generado
-    if (worldId) {
-      const worldUrl = `${this.baseUrl}/v1/worlds/${worldId}`;
-      const worldRes = await fetch(worldUrl, {
-        headers: {
-          'WLT-Api-Key': this.apiKey,
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-      });
-
-      if (worldRes.ok) {
-        const worldData = (await worldRes.json()) as WorldLabsWorldDetailResponse;
-        const meshUrl = worldData.assets?.mesh?.collider_mesh_url || worldData.assets?.mesh?.hq_mesh_url;
-        const splatUrl = worldData.assets?.splats?.spz_urls?.full_res || worldData.assets?.splats?.spz_urls?.['500k'];
-        
-        const result = {
-          sceneUrl: meshUrl || splatUrl || worldData.world_marble_url || `https://marble.worldlabs.ai/world/${worldId}`,
-          previewUrl: worldData.assets?.thumbnail_url,
-        };
-
-        // Guardar resultado exitoso en el directorio de storage
-        try {
-          const savedPath = await this.storage.saveWorldLabs(spec, result, worldData);
-          console.log(`💾 [World Labs Storage] Entorno guardado con éxito en: ${savedPath}`);
-        } catch (saveErr) {
-          console.warn('⚠️ [Storage] No se pudo guardar la caché de World Labs:', saveErr);
-        }
-
-        return result;
+      if (!isDone) {
+        throw new Error(`[World Labs Timeout] La generación del mundo excedió el tiempo máximo (${(this.pollIntervalMs * this.maxRetries) / 1000}s).`);
       }
     }
 
-    const fallbackResult = {
-      sceneUrl: `https://marble.worldlabs.ai/world/${worldId || operationId}`,
-    };
+    // 3. Obtener detalles y URLs de activos del World 3D generado
+    if (worldId) {
+      const worldUrl = `${this.baseUrl}/v1/worlds/${worldId}`;
+      let worldAttempts = 0;
+      const maxWorldDetailAttempts = 12;
 
-    try {
-      await this.storage.saveWorldLabs(spec, fallbackResult);
-    } catch {
-      // Ignorar errores no críticos de persistencia
+      while (worldAttempts < maxWorldDetailAttempts) {
+        worldAttempts++;
+        const worldRes = await fetch(worldUrl, {
+          headers: {
+            'WLT-Api-Key': this.apiKey,
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+        });
+
+        if (worldRes.ok) {
+          const worldData = (await worldRes.json()) as WorldLabsWorldDetailResponse;
+          const splatUrl =
+            worldData.assets?.splats?.spz_urls?.full_res ||
+            worldData.assets?.splats?.spz_urls?.['500k'] ||
+            worldData.assets?.splats?.spz_urls?.['150k'];
+          const meshUrl = worldData.assets?.mesh?.hq_mesh_url || worldData.assets?.mesh?.collider_mesh_url;
+          const panoUrl = worldData.assets?.imagery?.pano_url;
+
+          if (splatUrl || meshUrl || panoUrl) {
+            const validSceneUrl = (splatUrl || meshUrl || panoUrl)!;
+            const result = {
+              sceneUrl: validSceneUrl,
+              previewUrl: worldData.assets?.thumbnail_url,
+            };
+
+            // Guardar resultado exitoso en el directorio de storage
+            try {
+              const savedPath = await this.storage.saveWorldLabs(spec, result, worldData);
+              console.log(`💾 [World Labs Storage] Entorno guardado con éxito en: ${savedPath}`);
+            } catch (saveErr) {
+              console.warn('⚠️ [Storage] No se pudo guardar la caché de World Labs:', saveErr);
+            }
+
+            return result;
+          }
+        }
+
+        await new Promise((r) => setTimeout(r, 2500));
+      }
     }
 
-    return fallbackResult;
+    const fallback = await this.storage.getWorldLabsFallback(spec);
+    if (fallback) {
+      console.log(`📦 [World Labs Fallback] Usando entorno de respaldo: ${fallback.sceneUrl}`);
+      return fallback;
+    }
+
+    throw new Error(`[World Labs Error] No se pudieron obtener los activos Gaussian Splatting (.spz) para el mundo '${spec.prompt}'.`);
   }
 }

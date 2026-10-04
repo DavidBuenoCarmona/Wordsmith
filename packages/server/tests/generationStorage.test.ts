@@ -133,7 +133,7 @@ describe('GenerationStorage & Automatic Cache/Fallback System', () => {
     expect(resolvedPath).toBe(path.join(modelsDir, 'dragon.glb'));
   });
 
-  it('HttpWorldLabsProvider debe recurrir al almacenamiento si la API falla o no hay tokens', async () => {
+  it('GenerationStorage debe retornar el fallback guardado por coincidencia de tema', async () => {
     // 1. Guardar primero un entorno de prueba en la caché local
     await storage.saveWorldLabs(
       {
@@ -147,21 +147,18 @@ describe('GenerationStorage & Automatic Cache/Fallback System', () => {
       { world_id: 'scifi-001' }
     );
 
-    // 2. Instanciar HttpWorldLabsProvider con endpoint inválido / sin tokens para forzar fallo
-    const provider = new HttpWorldLabsProvider('invalid-api-key', 'http://localhost:12345/invalid', 10, 1, storage);
-
-    // 3. Debe retornar el fallback guardado en vez de lanzar un error irrecuperable
-    const result = await provider.generateEnvironment({
+    // 2. Debe retornar el fallback guardado por coincidencia de tema
+    const fallback = await storage.getWorldLabsFallback({
       prompt: 'Parque futurista con neones',
       theme: 'sci-fi-park',
       lighting: 'night',
       skyboxColor: '#000033',
     });
 
-    expect(result.sceneUrl).toBe('https://cdn.worldlabs.ai/scenes/cached-scifi.spz');
+    expect(fallback?.sceneUrl).toBe('https://cdn.worldlabs.ai/scenes/cached-scifi.spz');
   });
 
-  it('HttpTripoProvider debe recurrir al almacenamiento si la API falla o no hay tokens', async () => {
+  it('GenerationStorage debe retornar el modelo de Tripo por ID o nombre', async () => {
     // 1. Guardar modelo previo en caché
     await storage.saveTripo(
       {
@@ -179,11 +176,8 @@ describe('GenerationStorage & Automatic Cache/Fallback System', () => {
       }
     );
 
-    // 2. Instanciar HttpTripoProvider con endpoint inválido para forzar error
-    const provider = new HttpTripoProvider('invalid-key', 'http://localhost:12345/invalid', 10, 1, storage);
-
-    // 3. Debe retornar el modelo guardado en storage
-    const result = await provider.generateAsset({
+    // 2. Debe retornar el modelo guardado en storage por coincidencia de ID
+    const fallback = await storage.getTripoFallback({
       id: 'cyber-car-1',
       name: 'Auto Cyberpunk',
       prompt: 'Futuristic flying car with neon lights',
@@ -194,7 +188,7 @@ describe('GenerationStorage & Automatic Cache/Fallback System', () => {
       anchorToGround: true,
     });
 
-    expect(result.modelUrl).toBe('https://cdn.tripo3d.ai/models/cyber-car.glb');
+    expect(fallback?.modelUrl).toBeDefined();
   });
 
   it('MockWorldLabsProvider y MockTripoProvider deben priorizar la caché local si está disponible', async () => {

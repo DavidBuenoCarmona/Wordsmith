@@ -37,7 +37,7 @@ export class MockLLMProvider implements ILLMProvider {
         title: 'Parque Infantil Soleado',
         description: input.prompt,
         environment: {
-          prompt: 'Parque infantil colorido y soleado con toboganes, columpios, arenero y árboles verdes en un parque público.',
+          prompt: 'Lush green public park terrain with grassy lawns, stone walking paths, mature trees and sunny open sky without any playground equipment or structures.',
           theme: 'playground',
           lighting: 'day' as const,
           skyboxColor: '#87ceeb',
@@ -172,9 +172,9 @@ export class MockWorldLabsProvider implements IWorldLabsProvider {
       return cached;
     }
 
-    // Fallback por defecto al mapa real del parque infantil Gaussian Splatting (3D)
+    // Fallback por defecto al mapa real del parque infantil Gaussian Splatting (3D) en resolución completa
     return {
-      sceneUrl: 'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/5cc52299-dd1e-40dd-b325-4762fce22f4b_ceramic_500k.spz',
+      sceneUrl: 'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/d8d581cb-71ae-49d3-945d-d3e889f4c642_ceramic.spz',
       previewUrl: 'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/c82503bc-265c-4d97-981e-0adca15df304_sand_mpi/thumbnail.webp',
     };
   }

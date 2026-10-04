@@ -225,8 +225,13 @@ export class GenerationStorage {
       if (match) return { sceneUrl: match.sceneUrl, previewUrl: match.previewUrl };
     }
 
-    const latest = list[0];
-    return { sceneUrl: latest.sceneUrl, previewUrl: latest.previewUrl };
+    // Si no se pasó spec (búsqueda genérica abierta), retornar el más reciente
+    if (!spec || (!spec.theme && !spec.prompt)) {
+      const latest = list[0];
+      return { sceneUrl: latest.sceneUrl, previewUrl: latest.previewUrl };
+    }
+
+    return null;
   }
 
   // --- Listado Consolidado de Mundos Guardados (para el selector de la UI) ---
@@ -243,12 +248,12 @@ export class GenerationStorage {
         const ext = path.extname(file).toLowerCase();
         const baseName = path.basename(file, ext);
 
-        if (ext === '.spz' || ext === '.splat') {
+        if (ext === '.spz' || ext === '.splat' || ext === '.ply') {
           const fileUrl = `/api/storage/files/${encodeURIComponent(file)}`;
           seenUrls.add(fileUrl);
           results.push({
             id: `local-${file}`,
-            name: `${baseName.replace(/[-_]/g, ' ')} (Local SPZ)`,
+            name: `${baseName.replace(/[-_]/g, ' ')} (Local ${ext.toUpperCase().replace('.', '')})`,
             description: `Archivo local 3D Gaussian Splatting en storage/worlds/${file}`,
             theme: baseName,
             sceneUrl: fileUrl,
@@ -294,7 +299,7 @@ export class GenerationStorage {
     }
 
     // 3. Incluir el Parque Infantil de Referencia oficial si no está ya
-    const defaultPlaygroundUrl = 'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/5cc52299-dd1e-40dd-b325-4762fce22f4b_ceramic_500k.spz';
+    const defaultPlaygroundUrl = 'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/d8d581cb-71ae-49d3-945d-d3e889f4c642_ceramic.spz';
     if (!seenUrls.has(defaultPlaygroundUrl)) {
       results.unshift({
         id: 'reference-playground',
@@ -392,12 +397,32 @@ export class GenerationStorage {
     const filename = `${slug}_${id}.json`;
     const filePath = path.join(this.tripoDir, filename);
 
+    let finalModelUrl = result.modelUrl;
+
+    // Descargar el archivo binario .glb localmente para que nunca expire la URL firmada de S3
+    if (result.modelUrl && result.modelUrl.startsWith('http')) {
+      try {
+        const fetchRes = await fetch(result.modelUrl);
+        if (fetchRes.ok) {
+          const buffer = Buffer.from(await fetchRes.arrayBuffer());
+          const glbFilename = `${slug}_${id}.glb`;
+          const localGlbPath = path.join(this.modelsDir, glbFilename);
+          await fs.promises.writeFile(localGlbPath, buffer);
+          finalModelUrl = `/api/storage/files/${encodeURIComponent(glbFilename)}`;
+          result.modelUrl = finalModelUrl;
+          console.log(`💾 [Storage] Modelo GLB descargado y guardado permanentemente en: ${localGlbPath}`);
+        }
+      } catch (err) {
+        console.warn('⚠️ [Storage] No se pudo descargar localmente el GLB de Tripo:', err);
+      }
+    }
+
     const record: CachedTripoRecord = {
       id,
       name: spec.name,
       prompt: spec.prompt,
       category: spec.category,
-      modelUrl: result.modelUrl,
+      modelUrl: finalModelUrl,
       createdAt: new Date().toISOString(),
       rawResponse,
     };

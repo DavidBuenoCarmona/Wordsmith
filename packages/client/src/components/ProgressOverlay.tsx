@@ -6,7 +6,7 @@
 // =============================================================================
 
 import React from 'react';
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 import { GenerationJob } from '@wordsmith/shared';
 
 interface ProgressOverlayProps {
@@ -33,7 +33,7 @@ export const ProgressOverlay: React.FC<ProgressOverlayProps> = ({ job }) => {
   };
 
   return (
-    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full max-w-md bg-slate-900/90 backdrop-blur-lg border border-slate-700/80 rounded-2xl p-4 shadow-2xl space-y-3 z-20">
+    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full max-w-md bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl p-4 shadow-2xl space-y-3 z-20 animate-in fade-in zoom-in-95 duration-200">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">
           Pipeline de Generación 3D
@@ -49,7 +49,15 @@ export const ProgressOverlay: React.FC<ProgressOverlayProps> = ({ job }) => {
         />
       </div>
 
-      <p className="text-xs text-slate-300 truncate">{job.message}</p>
+      <p className="text-xs text-slate-200 leading-relaxed">{job.message}</p>
+
+      {/* Estimación explicativa */}
+      <div className="flex items-start gap-2 text-[11px] text-slate-400 bg-slate-800/60 p-2 rounded-xl border border-slate-750/70">
+        <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+        <span>
+          World Labs compila Gaussian Splatting volumétrico (<span className="text-indigo-300 font-mono">.spz</span>). La escena permanecerá limpia hasta que el mapa y los assets estén listos (~3 a 4 min).
+        </span>
+      </div>
 
       {/* Lista de Fases */}
       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">

@@ -29,6 +29,7 @@ export function useGenerationJob() {
     async (input: WorldPromptInput) => {
       setError(null);
       setIsGenerating(true);
+      setCurrentJob(null);
       cleanEventSource();
 
       try {
@@ -54,16 +55,25 @@ export function useGenerationJob() {
           try {
             const event: GenerationProgressEvent = JSON.parse(e.data);
             setCurrentJob((prev) => {
-              if (!prev) return null;
-              return {
-                ...prev,
+              const base = prev || {
+                id: event.jobId,
+                prompt: input.prompt,
                 phase: event.phase,
                 progress: event.progress,
                 message: event.message,
-                environment: event.environment || prev.environment,
-                assets: event.assets || prev.assets,
-                worldSpec: event.worldSpec || prev.worldSpec,
-                error: event.error || prev.error,
+                assets: [],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              };
+              return {
+                ...base,
+                phase: event.phase,
+                progress: event.progress,
+                message: event.message,
+                environment: event.environment || base.environment,
+                assets: event.assets || base.assets,
+                worldSpec: event.worldSpec || base.worldSpec,
+                error: event.error || base.error,
               };
             });
 

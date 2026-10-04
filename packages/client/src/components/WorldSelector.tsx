@@ -6,7 +6,7 @@
 // =============================================================================
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Globe, ChevronDown, Check, Sparkles, Folder, RefreshCw } from 'lucide-react';
+import { Globe, ChevronDown, Check, Sparkles, Folder, RefreshCw, FolderOpen } from 'lucide-react';
 
 export interface SavedWorld {
   id: string;
@@ -15,7 +15,7 @@ export interface SavedWorld {
   theme?: string;
   sceneUrl: string;
   previewUrl?: string;
-  type: 'spz' | 'glb' | 'pano';
+  type: 'spz' | 'ply' | 'glb' | 'pano';
   source: 'local_file' | 'generation_cache' | 'reference';
 }
 
@@ -32,6 +32,7 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
   const [worlds, setWorlds] = useState<SavedWorld[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchWorlds = async () => {
     setIsLoading(true);
@@ -63,10 +64,49 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const activeWorld = worlds.find((w) => w.sceneUrl === activeWorldUrl) || worlds[0];
+  // Manejador para abrir archivo de mapa local (.spz, .ply, .glb, .png, .jpg) sin persistir en servidor
+  const handleLocalWorldUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const objectUrl = `${URL.createObjectURL(file)}#${encodeURIComponent(file.name)}`;
+    const type: SavedWorld['type'] =
+      ext === 'glb' || ext === 'gltf'
+        ? 'glb'
+        : ext === 'png' || ext === 'jpg' || ext === 'jpeg'
+        ? 'pano'
+        : ext === 'ply'
+        ? 'ply'
+        : 'spz';
+
+    const customWorld: SavedWorld = {
+      id: `blob-world-${Date.now()}`,
+      name: file.name.replace(/\.[^/.]+$/, ''),
+      description: `Archivo ${ext?.toUpperCase()} abierto en navegador (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
+      sceneUrl: objectUrl,
+      type,
+      source: 'local_file',
+    };
+
+    onSelectWorld(customWorld);
+    setIsOpen(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const activeWorld = activeWorldUrl ? worlds.find((w) => w.sceneUrl === activeWorldUrl) : null;
 
   return (
     <div ref={dropdownRef} className="relative z-30">
+      {/* Input oculto para abrir mapas locales */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".spz,.ply,.splat,.glb,.gltf,.png,.jpg,.jpeg"
+        onChange={handleLocalWorldUpload}
+        className="hidden"
+      />
+
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -74,7 +114,7 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
       >
         <Globe className="w-3.5 h-3.5 text-indigo-400" />
         <span className="font-medium max-w-[150px] sm:max-w-[200px] truncate">
-          {activeWorld?.name || 'Mundos Guardados'}
+          {activeWorld?.name || 'Seleccionar Mapa'}
         </span>
         <ChevronDown
           className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
@@ -87,17 +127,27 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
       {isOpen && (
         <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 bg-slate-900/95 backdrop-blur-xl border border-slate-750 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            <span>Mundos Disponibles ({worlds.length})</span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                fetchWorlds();
-              }}
-              title="Actualizar lista de mundos"
-              className="hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800"
-            >
-              <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
+            <span>Mundos ({worlds.length})</span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                title="Abrir mapa desde tu equipo (.spz, .ply, .glb)"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-800/60 text-indigo-300 text-[10px] transition-colors"
+              >
+                <FolderOpen className="w-3 h-3" />
+                <span>Abrir Mapa</span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fetchWorlds();
+                }}
+                title="Actualizar lista de mundos"
+                className="hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800"
+              >
+                <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           </div>
 
           <div className="max-h-64 overflow-y-auto mt-1 space-y-1 pr-1 custom-scrollbar">
@@ -154,7 +204,7 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
 
           <div className="p-2 border-t border-slate-800/80 text-[10px] text-slate-400 flex items-center justify-between">
             <span>📁 storage/worlds/</span>
-            <span className="text-indigo-400 font-mono">Soporta .spz y .glb</span>
+            <span className="text-indigo-400 font-mono">Soporta .spz, .ply y .glb</span>
           </div>
         </div>
       )}

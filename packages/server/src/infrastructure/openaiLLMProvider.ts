@@ -30,7 +30,7 @@ Reglas del WorldSpec:
 2. title: Nombre descriptivo breve del mundo (ej: "Isla Pirata").
 3. description: Resumen de la escena.
 4. environment:
-   - prompt: Prompt en inglés hiper-detallado y optimizado para World Labs (ej: "Tropical sandy island with ocean shore, palm trees, sunny day").
+   - prompt: Prompt en inglés hiper-detallado y optimizado para World Labs enfocado EXCLUSIVAMENTE en terreno, paisaje, vegetación, atmósfera, cielo e iluminación (ej: "Vast grassy park landscape with winding gravel paths, lush trees, gentle rolling hills under clear daylight"). IMPORTANTE: El entorno NO debe incluir ninguna estructura artificial, edificios, juegos infantiles, columpios, vehículos, muebles, personas ni animales (esos elementos serán generados individualmente como assets 3D por Tripo).
    - theme: Identificador corto en kebab-case (ej: "pirate-bay").
    - lighting: Uno de ["day", "sunset", "night", "foggy", "dramatic"].
    - skyboxColor: Color hexadecimal (ej: "#87ceeb", "#ff7f50").

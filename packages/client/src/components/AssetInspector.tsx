@@ -11,9 +11,15 @@ import { GenerationJob } from '@wordsmith/shared';
 
 interface AssetInspectorProps {
   job: GenerationJob | null;
+  selectedAssetId?: string | null;
+  onSelectAsset?: (assetId: string) => void;
 }
 
-export const AssetInspector: React.FC<AssetInspectorProps> = ({ job }) => {
+export const AssetInspector: React.FC<AssetInspectorProps> = ({
+  job,
+  selectedAssetId,
+  onSelectAsset,
+}) => {
   if (!job || !job.worldSpec) return null;
 
   return (
@@ -45,14 +51,21 @@ export const AssetInspector: React.FC<AssetInspectorProps> = ({ job }) => {
         <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
           {job.worldSpec.assets.map((asset) => {
             const state = job.assets?.find((a) => a.id === asset.id);
+            const isSelected = selectedAssetId === asset.id;
+
             return (
               <div
                 key={asset.id}
-                className="p-2.5 bg-slate-800/40 hover:bg-slate-800/70 rounded-xl border border-slate-700/30 text-xs transition-colors space-y-1"
+                onClick={() => onSelectAsset?.(asset.id)}
+                className={`p-2.5 rounded-xl border text-xs transition-all cursor-pointer space-y-1 ${
+                  isSelected
+                    ? 'bg-indigo-950/60 border-indigo-500/80 ring-1 ring-indigo-500/50 shadow-md shadow-indigo-950/50'
+                    : 'bg-slate-800/40 hover:bg-slate-800/70 border-slate-700/30'
+                }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-200 flex items-center gap-1.5">
-                    <Box className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className={`font-medium flex items-center gap-1.5 ${isSelected ? 'text-indigo-200 font-semibold' : 'text-slate-200'}`}>
+                    <Box className={`w-3.5 h-3.5 ${isSelected ? 'text-indigo-300' : 'text-indigo-400'}`} />
                     {asset.name}
                   </span>
                   {state?.status === 'READY' && <Check className="w-3.5 h-3.5 text-emerald-400" />}
@@ -61,7 +74,7 @@ export const AssetInspector: React.FC<AssetInspectorProps> = ({ job }) => {
                 </div>
                 <p className="text-[11px] text-slate-400 truncate">{asset.prompt}</p>
                 <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
-                  <span>Pos: [{asset.position.x}, {asset.position.y}, {asset.position.z}]</span>
+                  <span>Pos: [{asset.position.x.toFixed(1)}, {asset.position.y.toFixed(1)}, {asset.position.z.toFixed(1)}]</span>
                   <span>Cat: {asset.category}</span>
                 </div>
               </div>

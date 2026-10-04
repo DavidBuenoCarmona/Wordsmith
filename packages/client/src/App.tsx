@@ -6,69 +6,139 @@
 // =============================================================================
 
 import React, { useEffect, useRef, useState } from 'react';
-import { WorldViewer3D } from './viewer/WorldViewer3D.js';
+import { WorldViewer3D, TransformMode } from './viewer/WorldViewer3D.js';
 import { useGenerationJob } from './hooks/useGenerationJob.js';
 import { PromptBar } from './components/PromptBar.js';
 import { ProgressOverlay } from './components/ProgressOverlay.js';
 import { AssetInspector } from './components/AssetInspector.js';
+import { TransformToolbar } from './components/TransformToolbar.js';
 import { WorldSelector, SavedWorld } from './components/WorldSelector.js';
 import { ModelSelector, SavedModel } from './components/ModelSelector.js';
-import { Compass, Sparkles, Navigation, RotateCcw } from 'lucide-react';
+import { JupiterSRPanel } from './components/JupiterSRPanel.js';
+import { Compass, Sparkles, Navigation, RotateCcw, Upload, Globe, Box, ChevronDown } from 'lucide-react';
 
 export const App: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<WorldViewer3D | null>(null);
-  const [mapStatus, setMapStatus] = useState<string | null>(null);
-  const [activeWorldUrl, setActiveWorldUrl] = useState<string | null>(
-    'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/5cc52299-dd1e-40dd-b325-4762fce22f4b_ceramic_500k.spz'
-  );
-  const { currentJob, isGenerating, error, startGeneration } = useGenerationJob();
+  const [viewerInstance, setViewerInstance] = useState<WorldViewer3D | null>(null);
+  const mapFileInputRef = useRef<HTMLInputElement>(null);
+  const modelFileInputRef = useRef<HTMLInputElement>(null);
+  const importDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Cargar escenario de referencia por defecto
-  const loadReferencePlayground = () => {
-    fetch('/api/storage/reference')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        const sceneUrl =
-          data?.environment?.sceneUrl ||
-          'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/5cc52299-dd1e-40dd-b325-4762fce22f4b_ceramic_500k.spz';
-        setActiveWorldUrl(sceneUrl);
-        if (data?.worldSpec && viewerRef.current) {
-          viewerRef.current.applyWorldSpec(data.worldSpec, sceneUrl);
-        }
-      })
-      .catch(() => {
-        const defaultUrl =
-          'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/5cc52299-dd1e-40dd-b325-4762fce22f4b_ceramic_500k.spz';
-        setActiveWorldUrl(defaultUrl);
-        if (viewerRef.current) {
-          viewerRef.current.loadEnvironment(defaultUrl);
-        }
-      });
+  const [mapStatus, setMapStatus] = useState<string | null>(null);
+  const [isImportMenuOpen, setIsImportMenuOpen] = useState<boolean>(false);
+  const [activeWorldUrl, setActiveWorldUrl] = useState<string | null>(null);
+
+  // Estado de Transformación y Selección
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [selectedPosition, setSelectedPosition] = useState<{ x: number; y: number; z: number } | undefined>();
+  const [selectedRotation, setSelectedRotation] = useState<{ x: number; y: number; z: number } | undefined>();
+  const [transformMode, setTransformMode] = useState<TransformMode>('translate');
+
+  const { currentJob, isGenerating, error, startGeneration } = useGenerationJob();
+  const currentJobRef = useRef<typeof currentJob>(null);
+  currentJobRef.current = currentJob;
+
+  const handleStartGeneration = (input: Parameters<typeof startGeneration>[0]) => {
+    setSelectedAssetId(null);
+    setSelectedPosition(undefined);
+    setSelectedRotation(undefined);
+    setActiveWorldUrl(null);
+    if (viewerRef.current) {
+      viewerRef.current.clearScene();
+    }
+    startGeneration(input);
   };
 
   useEffect(() => {
     if (containerRef.current && !viewerRef.current) {
-      viewerRef.current = new WorldViewer3D(containerRef.current, {
+      const viewer = new WorldViewer3D(containerRef.current, {
         onProgress: (_pct, detail) => setMapStatus(detail),
         onLoaded: () => setMapStatus(null),
         onError: () => setMapStatus(null),
+        onAssetSelected: (assetId, pos, rot) => {
+          setSelectedAssetId(assetId);
+          setSelectedPosition(pos ? { x: pos.x, y: pos.y, z: pos.z } : undefined);
+          setSelectedRotation(rot ? { x: rot.x, y: rot.y, z: rot.z } : undefined);
+        },
+        onAssetTransformed: (assetId, pos, rot) => {
+          setSelectedPosition(pos);
+          setSelectedRotation(rot);
+          const activeJob = currentJobRef.current;
+          if (activeJob?.worldSpec) {
+            const asset = activeJob.worldSpec.assets.find((a) => a.id === assetId);
+            if (asset) {
+              asset.position = { ...pos };
+              asset.rotation = { ...rot };
+            }
+          }
+        },
+        onAssetDeleted: (assetId) => {
+          const activeJob = currentJobRef.current;
+          if (activeJob?.worldSpec) {
+            activeJob.worldSpec.assets = activeJob.worldSpec.assets.filter((a) => a.id !== assetId);
+          }
+          if (activeJob?.assets) {
+            activeJob.assets = activeJob.assets.filter((a) => a.id !== assetId);
+          }
+          setSelectedAssetId(null);
+          setSelectedPosition(undefined);
+          setSelectedRotation(undefined);
+        },
       });
-
-      // Cargar mapa del parque por defecto al iniciar
-      loadReferencePlayground();
+      viewerRef.current = viewer;
+      setViewerInstance(viewer);
     }
 
     return () => {
       if (viewerRef.current) {
         viewerRef.current.destroy();
         viewerRef.current = null;
+        setViewerInstance(null);
       }
     };
   }, []);
 
-  // Actualizar escena 3D cuando se recibe el worldSpec completado o el environmentUrl
+  // Manejo de atajos de teclado globales para TransformGizmo (W, E, Escape, Delete/Backspace)
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignorar si el usuario está escribiendo en un input o textarea
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      if (!selectedAssetId || !viewerRef.current) return;
+
+      if (e.code === 'KeyM') {
+        e.preventDefault();
+        setTransformMode('translate');
+        viewerRef.current.setTransformMode('translate');
+      } else if (e.code === 'KeyR') {
+        e.preventDefault();
+        setTransformMode('rotate');
+        viewerRef.current.setTransformMode('rotate');
+      } else if (e.code === 'Escape') {
+        e.preventDefault();
+        viewerRef.current.deselectAsset();
+        setSelectedAssetId(null);
+      } else if (e.code === 'Delete' || e.code === 'Backspace') {
+        e.preventDefault();
+        viewerRef.current.deleteSelectedAsset();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedAssetId]);
+
+  // Actualizar escena 3D ÚNICAMENTE cuando la generación ha finalizado con éxito (COMPLETED)
+  useEffect(() => {
+    // Si la generación sigue en curso o falló, la escena se mantiene completamente limpia
+    if (isGenerating || currentJob?.phase !== 'COMPLETED') {
+      return;
+    }
+
     if (currentJob?.worldSpec && viewerRef.current) {
       const assetUrlMap: Record<string, string> = {};
       currentJob.assets.forEach((a) => {
@@ -87,12 +157,23 @@ export const App: React.FC = () => {
         assetUrlMap
       );
     }
-  }, [currentJob?.worldSpec, currentJob?.environment?.sceneUrl, currentJob?.assets]);
+  }, [currentJob?.worldSpec, currentJob?.environment?.sceneUrl, currentJob?.assets, currentJob?.phase, isGenerating]);
+
+  // Cerrar menú de importar al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (importDropdownRef.current && !importDropdownRef.current.contains(e.target as Node)) {
+        setIsImportMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSelectWorld = (world: SavedWorld) => {
     setActiveWorldUrl(world.sceneUrl);
     if (viewerRef.current) {
-      viewerRef.current.loadEnvironment(world.sceneUrl);
+      viewerRef.current.loadEnvironment(world.sceneUrl, world.type);
     }
   };
 
@@ -102,13 +183,81 @@ export const App: React.FC = () => {
     }
   };
 
+  // Cargar mapa / entorno local (.spz, .ply, .glb, .png, .jpg)
+  const handleLoadMapFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !viewerRef.current) return;
+
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    // Añadimos hash con nombre de archivo al Blob URL para preservar la extensión en Spark / Three
+    const objectUrl = `${URL.createObjectURL(file)}#${encodeURIComponent(file.name)}`;
+    const type: SavedWorld['type'] =
+      ext === 'png' || ext === 'jpg' || ext === 'jpeg'
+        ? 'pano'
+        : ext === 'glb' || ext === 'gltf'
+        ? 'glb'
+        : ext === 'ply'
+        ? 'ply'
+        : 'spz';
+
+    const customWorld: SavedWorld = {
+      id: `blob-world-${Date.now()}`,
+      name: file.name.replace(/\.[^/.]+$/, ''),
+      description: `Mapa ${ext?.toUpperCase()} cargado en memoria (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
+      sceneUrl: objectUrl,
+      type,
+      source: 'local_file',
+    };
+
+    handleSelectWorld(customWorld);
+    setIsImportMenuOpen(false);
+    if (mapFileInputRef.current) mapFileInputRef.current.value = '';
+  };
+
+  // Cargar modelo / entidad 3D local (.glb, .gltf)
+  const handleLoadModelFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !viewerRef.current) return;
+
+    const objectUrl = `${URL.createObjectURL(file)}#${encodeURIComponent(file.name)}`;
+    const customModel: SavedModel = {
+      id: `blob-model-${Date.now()}`,
+      name: file.name.replace(/\.[^/.]+$/, ''),
+      description: `Modelo 3D cargado en memoria (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
+      modelUrl: objectUrl,
+      source: 'local_file',
+    };
+
+    handleSpawnModel(customModel);
+    setIsImportMenuOpen(false);
+    if (modelFileInputRef.current) modelFileInputRef.current.value = '';
+  };
+
+  const selectedAssetName = currentJob?.worldSpec?.assets.find((a) => a.id === selectedAssetId)?.name;
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans select-none">
+      {/* Inputs ocultos para carga de archivos locales efímeros */}
+      <input
+        ref={mapFileInputRef}
+        type="file"
+        accept=".spz,.ply,.splat,.glb,.gltf,.png,.jpg,.jpeg"
+        onChange={handleLoadMapFile}
+        className="hidden"
+      />
+      <input
+        ref={modelFileInputRef}
+        type="file"
+        accept=".glb,.gltf"
+        onChange={handleLoadModelFile}
+        className="hidden"
+      />
+
       {/* Three.js Canvas Container */}
       <div ref={containerRef} className="absolute inset-0 w-full h-full z-0 cursor-grab active:cursor-grabbing" />
 
-      {/* Top Header */}
-      <header className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between pointer-events-none z-10">
+      {/* Top Header - z-40 para que los desplegables queden siempre por encima del hint de navegación z-10 */}
+      <header className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between pointer-events-none z-40">
         <div className="flex items-center gap-2.5 bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-800 pointer-events-auto shadow-xl">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center text-white shadow-lg">
             <Compass className="w-5 h-5" />
@@ -129,6 +278,59 @@ export const App: React.FC = () => {
             </div>
           )}
 
+          {/* Menú Desplegable de Importación Directa */}
+          <div ref={importDropdownRef} className="relative z-50">
+            <button
+              onClick={() => setIsImportMenuOpen(!isImportMenuOpen)}
+              title="Importar mapa o entidad desde tu equipo sin guardarlo en el servidor"
+              className="flex items-center gap-1.5 bg-indigo-950/85 hover:bg-indigo-900/90 border border-indigo-700/60 backdrop-blur-md px-3.5 py-2 rounded-xl text-xs text-white shadow-xl transition-all active:scale-95"
+            >
+              <Upload className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="font-semibold">Importar</span>
+              <ChevronDown
+                className={`w-3 h-3 text-indigo-300 transition-transform duration-200 ${
+                  isImportMenuOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {isImportMenuOpen && (
+              <div className="absolute top-full right-0 mt-2 w-64 bg-slate-900/95 backdrop-blur-xl border border-slate-750 rounded-2xl shadow-2xl p-1.5 animate-in fade-in zoom-in-95 duration-150 space-y-1 z-50">
+                <button
+                  onClick={() => {
+                    mapFileInputRef.current?.click();
+                    setIsImportMenuOpen(false);
+                  }}
+                  className="w-full flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-800/80 text-left transition-colors group"
+                >
+                  <div className="p-1.5 rounded-lg bg-indigo-950/70 border border-indigo-800/50 text-indigo-400 group-hover:bg-indigo-900 group-hover:text-white transition-colors mt-0.5">
+                    <Globe className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold text-slate-100 block">Cargar Mapa</span>
+                    <span className="text-[10px] text-slate-400 block leading-tight">Archivos .spz, .ply, .glb o 360</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    modelFileInputRef.current?.click();
+                    setIsImportMenuOpen(false);
+                  }}
+                  className="w-full flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-800/80 text-left transition-colors group"
+                >
+                  <div className="p-1.5 rounded-lg bg-pink-950/70 border border-pink-800/50 text-pink-400 group-hover:bg-pink-900 group-hover:text-white transition-colors mt-0.5">
+                    <Box className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold text-slate-100 block">Cargar Modelo</span>
+                    <span className="text-[10px] text-slate-400 block leading-tight">Entidad 3D (.glb / .gltf)</span>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Selector de Mundos Guardados (.spz / .glb) */}
           <WorldSelector
             activeWorldUrl={activeWorldUrl}
@@ -137,6 +339,9 @@ export const App: React.FC = () => {
 
           {/* Selector e Inserción de Modelos GLB / Tripo 3D */}
           <ModelSelector onSpawnModel={handleSpawnModel} />
+
+          {/* Panel y Toggle de 3D Autoestereoscópico JupiterSR */}
+          <JupiterSRPanel viewer={viewerInstance} />
 
           <button
             onClick={() => viewerRef.current?.resetCamera()}
@@ -160,9 +365,34 @@ export const App: React.FC = () => {
         <span>Arrastrá para mirar · <b>WASD</b> volar · <b>Shift</b> acelerar</span>
       </div>
 
+      {/* Floating Transform Toolbar when asset is selected */}
+      {selectedAssetId && (
+        <TransformToolbar
+          selectedAssetId={selectedAssetId}
+          selectedAssetName={selectedAssetName}
+          mode={transformMode}
+          position={selectedPosition}
+          rotation={selectedRotation}
+          onModeChange={(m) => {
+            setTransformMode(m);
+            viewerRef.current?.setTransformMode(m);
+          }}
+          onSnapToGround={() => viewerRef.current?.snapSelectedToGround()}
+          onDelete={() => viewerRef.current?.deleteSelectedAsset()}
+          onClose={() => {
+            viewerRef.current?.deselectAsset();
+            setSelectedAssetId(null);
+          }}
+        />
+      )}
+
       {/* Overlays */}
       {isGenerating && currentJob && <ProgressOverlay job={currentJob} />}
-      <AssetInspector job={currentJob} />
+      <AssetInspector
+        job={currentJob}
+        selectedAssetId={selectedAssetId}
+        onSelectAsset={(id) => viewerRef.current?.selectAsset(id)}
+      />
 
       {/* Error Banner */}
       {error && (
@@ -173,7 +403,7 @@ export const App: React.FC = () => {
 
       {/* Bottom Prompt Bar */}
       <footer className="absolute bottom-6 left-0 right-0 px-4 z-10">
-        <PromptBar onGenerate={startGeneration} isGenerating={isGenerating} />
+        <PromptBar onGenerate={handleStartGeneration} isGenerating={isGenerating} />
       </footer>
     </div>
   );

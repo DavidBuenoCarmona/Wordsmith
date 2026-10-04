@@ -6,7 +6,7 @@
 // =============================================================================
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, ChevronDown, Sparkles, Folder, RefreshCw, Plus, Check } from 'lucide-react';
+import { Box, ChevronDown, Sparkles, Folder, RefreshCw, Plus, Check, FolderOpen } from 'lucide-react';
 
 export interface SavedModel {
   id: string;
@@ -122,11 +122,11 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) =>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                title="Cargar archivo .glb desde tu equipo"
-                className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-800/60 text-indigo-300 text-[10px] transition-colors"
+                title="Abrir archivo 3D (.glb / .gltf) desde tu equipo"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-pink-950/70 hover:bg-pink-900 border border-pink-800/60 text-pink-300 text-[10px] transition-colors"
               >
-                <Plus className="w-3 h-3" />
-                <span>Subir GLB</span>
+                <FolderOpen className="w-3 h-3" />
+                <span>Abrir GLB</span>
               </button>
               <button
                 onClick={(e) => {

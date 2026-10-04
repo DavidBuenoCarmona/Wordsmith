@@ -1,0 +1,31 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Node.js 20+, TypeScript 5.4, React 18, Three.js, Fastify 4, Zod 3, Vitest 1.6
+  Architecture: Monorepo (npm workspaces) with packages/client, packages/server, packages/shared; Hexagonal backend architecture with SSE streaming; 3D generation orchestration (World Labs + Tripo 3D)
+  Testing: Vitest in all packages (client, server, shared), unit and integration suites
+  Style: Functional TypeScript, Zod contracts shared between client and server, TailwindCSS for UI
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns and hexagonal architecture boundaries
+    tdd: true
+    test_command: "npm test"
+  verify:
+    test_command: "npm test"
+    build_command: "npm run build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas

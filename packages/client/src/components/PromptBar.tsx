@@ -48,6 +48,8 @@ export const PromptBar: React.FC<PromptBarProps> = ({ onGenerate, isGenerating }
           type="text"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => e.stopPropagation()}
+          onKeyUp={(e) => e.stopPropagation()}
           placeholder="Describe el mundo 3D que querés crear (ej: Isla pirata con tesoro)..."
           disabled={isGenerating}
           className="flex-1 bg-transparent px-3 py-2 text-sm md:text-base text-slate-100 placeholder-slate-400 focus:outline-none disabled:opacity-50"
