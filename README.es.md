@@ -18,6 +18,12 @@
 
 ---
 
+## 🏆 Premio
+
+Wordsmith ha sido creado por un equipo formado por **David Bueno Carmona** y **David Bueno Vallejo**, y con este trabajo ganamos el premio **"Best Use of World Labs"** en el **Tripothon de Barcelona**.
+
+---
+
 ## 🎯 ¿Qué es Wordsmith?
 
 Crear un mundo 3D coherente suele requerir múltiples herramientas complejas, descarga manual de assets e integración tediosa en motores gráficos. **Wordsmith** actúa como un director de creación:

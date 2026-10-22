@@ -18,6 +18,12 @@
 
 ---
 
+## 🏆 Award
+
+Wordsmith was built by a team of **David Bueno Carmona** and **David Bueno Vallejo**, and with this work we won the **"Best Use of World Labs"** prize at the **Tripothon in Barcelona**.
+
+---
+
 ## 🎯 What is Wordsmith?
 
 Building coherent 3D scenes typically demands navigating multiple separate DCC tools, manually downloading assets, and tedious placement inside graphics engines. **Wordsmith** acts as an AI spatial director:
