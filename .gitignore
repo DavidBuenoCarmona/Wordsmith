@@ -1,34 +1,27 @@
-# Dependencies
-node_modules
-.pnpm-store
-dist
-build
-coverage
-
-# Environment & Secrets
+# Secretos: NUNCA versionar claves de API
 .env
-.env.local
-.env.*.local
-*.pem
-*.key
+.env.*
+!.env.example
+
+# Dependencias y compilados
+node_modules/
+dist/
+*.tsbuildinfo
 
 # Logs
-npm-debug.log*
-yarn-debug.log*
-pnpm-debug.log*
 *.log
 
-# IDE & OS
+# Datos generados por el usuario (modelos, mundos, escenas, cachés de generación, pins)
+storage/generations/
+storage/scenes/
+storage/favorites.json
+storage/models/*
+storage/worlds/*
+!storage/models/README.md
+!storage/worlds/README.md
+
+# Editor / SO
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-
-# Databases & Cache
-*.sqlite
-*.sqlite-journal
-*.db
-.turbo
-.cache
-
-storage

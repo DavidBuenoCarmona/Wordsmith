@@ -5,8 +5,11 @@
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Box, ChevronDown, Sparkles, Folder, RefreshCw, Plus, Check, FolderOpen } from 'lucide-react';
+import { useFavorites } from '../hooks/useFavorites.js';
+import { sortWithFavorites } from '../utils/sort.js';
+import { FavoriteStar } from './FavoriteStar.js';
 
 export interface SavedModel {
   id: string;
@@ -21,15 +24,20 @@ export interface SavedModel {
 
 interface ModelSelectorProps {
   onSpawnModel: (model: SavedModel) => void;
+  /** Importar un GLB del dispositivo (App lo sube a storage/models y lo añade a la escena). */
+  onImportFile: (file: File) => void;
+  /** Cambia para forzar una recarga del listado (p. ej. tras importar). */
+  refreshToken?: number;
 }
 
-export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) => {
+export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel, onImportFile, refreshToken = 0 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [models, setModels] = useState<SavedModel[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { favorites, toggleFavorite } = useFavorites('models');
 
   const fetchModels = async () => {
     setIsLoading(true);
@@ -48,7 +56,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) =>
 
   useEffect(() => {
     fetchModels();
-  }, []);
+  }, [refreshToken]);
 
   // Cerrar al hacer click fuera
   useEffect(() => {
@@ -69,34 +77,25 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) =>
     }, 2000);
   };
 
-  // Manejador para cargar archivo GLB local mediante explorador de archivos del navegador
-  const handleLocalFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFilePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    const objectUrl = URL.createObjectURL(file);
-    const customModel: SavedModel = {
-      id: `blob-${Date.now()}`,
-      name: file.name.replace(/\.[^/.]+$/, ''),
-      description: `GLB file loaded from browser (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
-      modelUrl: objectUrl,
-      source: 'local_file',
-    };
-
-    onSpawnModel(customModel);
-    setIsOpen(false);
-    // Clear input
+    if (file) {
+      onImportFile(file);
+      setIsOpen(false);
+    }
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const sortedModels = useMemo(() => sortWithFavorites(models, favorites), [models, favorites]);
+
   return (
     <div ref={dropdownRef} className="relative z-30">
-      {/* Hidden input for uploading GLB files */}
+      {/* Hidden input for importing GLB files */}
       <input
         ref={fileInputRef}
         type="file"
         accept=".glb,.gltf"
-        onChange={handleLocalFileUpload}
+        onChange={handleFilePicked}
         className="hidden"
       />
 
@@ -122,11 +121,11 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) =>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                title="Open 3D model (.glb / .gltf) from your device"
+                title="Import a 3D model (.glb / .gltf) from your device — it is saved to storage/models"
                 className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-pink-950/70 hover:bg-pink-900 border border-pink-800/60 text-pink-300 text-[10px] transition-colors"
               >
                 <FolderOpen className="w-3 h-3" />
-                <span>Open GLB</span>
+                <span>Import GLB</span>
               </button>
               <button
                 onClick={(e) => {
@@ -147,17 +146,20 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) =>
                 <Box className="w-8 h-8 text-slate-600 mx-auto" />
                 <p className="text-xs text-slate-300 font-medium">No saved GLB models yet</p>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Place your Tripo 3D <code className="text-indigo-400 font-mono">.glb</code> files in <code className="text-indigo-400 font-mono">storage/models/</code> or click <b>Open GLB</b>.
+                  Place your Tripo 3D <code className="text-indigo-400 font-mono">.glb</code> files in <code className="text-indigo-400 font-mono">storage/models/</code> or click <b>Import GLB</b>.
                 </p>
               </div>
             ) : (
-              models.map((m) => {
+              sortedModels.map((m) => {
                 const isJustAdded = lastAddedId === m.id;
                 return (
                   <div
                     key={m.id}
-                    className="p-2.5 rounded-xl transition-all flex items-start gap-2.5 bg-slate-855/60 hover:bg-slate-800/80 border border-slate-750/50 group"
+                    data-testid="model-row"
+                    className="p-2.5 rounded-xl transition-all flex items-start gap-2 bg-slate-855/60 hover:bg-slate-800/80 border border-slate-750/50 group"
                   >
+                    <FavoriteStar active={favorites.has(m.id)} onToggle={() => toggleFavorite(m.id)} />
+
                     <div className="mt-0.5">
                       {m.source === 'local_file' ? (
                         <Folder className="w-4 h-4 text-pink-400" />
@@ -210,8 +212,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ onSpawnModel }) =>
           </div>
 
           <div className="p-2 mt-1 border-t border-slate-800/80 text-[10px] text-slate-400 flex items-center justify-between">
-            <span>📁 storage/models/</span>
-            <span className="text-pink-400 font-mono">Tripo Exports (.glb)</span>
+            <span>⭐ Pinned first · A–Z</span>
+            <span className="text-pink-400 font-mono">📁 storage/models/</span>
           </div>
         </div>
       )}

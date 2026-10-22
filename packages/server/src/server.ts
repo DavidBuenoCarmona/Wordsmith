@@ -9,7 +9,13 @@ import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { WorldPromptInputSchema } from '@wordsmith/shared';
+import { z } from 'zod';
+import {
+  WorldPromptInputSchema,
+  SceneFileSchema,
+  FavoritesKindSchema,
+  FavoritesBodySchema,
+} from '@wordsmith/shared';
 import { GenerationOrchestrator } from './application/orchestrator.js';
 import { ProviderFactory } from './infrastructure/providerFactory.js';
 import {
@@ -17,6 +23,14 @@ import {
   MemoryEventPublisher,
 } from './infrastructure/mockProviders.js';
 import { GenerationStorage } from './infrastructure/generationStorage.js';
+
+/** Límite de subida de archivos importados (mundos .spz/.ply y modelos .glb pueden ser grandes). */
+const MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
+
+const UploadQuerySchema = z.object({
+  kind: z.enum(['world', 'model']),
+  filename: z.string().min(1).max(200),
+});
 
 export function buildServer(orchestrator?: GenerationOrchestrator, eventPublisher?: MemoryEventPublisher): FastifyInstance {
   const server = Fastify({ logger: false });
@@ -36,7 +50,15 @@ export function buildServer(orchestrator?: GenerationOrchestrator, eventPublishe
 
   server.register(cors, {
     origin: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
+
+  // Cuerpo binario crudo para importar archivos (mundos / modelos) desde el navegador
+  server.addContentTypeParser(
+    'application/octet-stream',
+    { parseAs: 'buffer', bodyLimit: MAX_UPLOAD_BYTES },
+    (_request, body, done) => done(null, body)
+  );
 
   // Health check
   server.get('/health', async () => {
@@ -68,11 +90,84 @@ export function buildServer(orchestrator?: GenerationOrchestrator, eventPublishe
     let contentType = 'application/octet-stream';
     if (ext === '.glb') contentType = 'model/gltf-binary';
     else if (ext === '.json') contentType = 'application/json';
+    else if (ext === '.png') contentType = 'image/png';
+    else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
 
     reply.header('Content-Type', contentType);
     reply.header('Access-Control-Allow-Origin', '*');
     const stream = fs.createReadStream(filePath);
     return reply.send(stream);
+  });
+
+  // Importar un archivo del usuario: se guarda en storage/ para poder incluirlo en escenas guardadas
+  server.post('/api/storage/upload', async (request, reply) => {
+    const query = UploadQuerySchema.safeParse(request.query);
+    if (!query.success) {
+      return reply.status(400).send({ error: 'Invalid upload query', details: query.error.format() });
+    }
+    if (!Buffer.isBuffer(request.body)) {
+      return reply.status(400).send({ error: 'Expected application/octet-stream body.' });
+    }
+
+    const saved = await storage.saveUpload(query.data.kind, query.data.filename, request.body);
+    if (!saved.ok) {
+      return reply.status(400).send({ error: saved.error });
+    }
+    return reply.status(201).send(saved.value);
+  });
+
+  // Escenas guardadas (mundo + modelos con sus transformaciones)
+  server.get('/api/storage/scenes', async () => {
+    const scenes = await storage.listScenes();
+    return { scenes };
+  });
+
+  server.get('/api/storage/scenes/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const scene = await storage.getScene(id);
+    if (!scene) {
+      return reply.status(404).send({ error: `Scene '${id}' not found.` });
+    }
+    return scene;
+  });
+
+  server.post('/api/storage/scenes', async (request, reply) => {
+    const parsed = SceneFileSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid scene file', details: parsed.error.format() });
+    }
+    const saved = await storage.saveScene(parsed.data);
+    if (!saved.ok) {
+      return reply.status(500).send({ error: saved.error });
+    }
+    return reply.status(201).send(saved.value);
+  });
+
+  server.delete('/api/storage/scenes/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const deleted = await storage.deleteScene(id);
+    if (!deleted) {
+      return reply.status(404).send({ error: `Scene '${id}' not found.` });
+    }
+    return { deleted: id };
+  });
+
+  // Favoritos (pins) de mundos y modelos
+  server.get('/api/storage/favorites/:kind', async (request, reply) => {
+    const kind = FavoritesKindSchema.safeParse((request.params as { kind: string }).kind);
+    if (!kind.success) {
+      return reply.status(400).send({ error: 'kind must be "worlds" or "models".' });
+    }
+    return { ids: await storage.getFavorites(kind.data) };
+  });
+
+  server.put('/api/storage/favorites/:kind', async (request, reply) => {
+    const kind = FavoritesKindSchema.safeParse((request.params as { kind: string }).kind);
+    const body = FavoritesBodySchema.safeParse(request.body);
+    if (!kind.success || !body.success) {
+      return reply.status(400).send({ error: 'Invalid favorites request.' });
+    }
+    return { ids: await storage.setFavorites(kind.data, body.data.ids) };
   });
 
   // Obtener escenario de referencia guardado por defecto

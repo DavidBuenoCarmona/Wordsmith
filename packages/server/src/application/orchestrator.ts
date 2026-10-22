@@ -8,6 +8,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   WorldPromptInput,
+  WorldSpec,
   GenerationJob,
   GenerationProgressEvent,
 } from '@wordsmith/shared';
@@ -35,6 +36,7 @@ export class GenerationOrchestrator {
     const job: GenerationJob = {
       id: randomUUID(),
       prompt: input.prompt,
+      mode: input.mode,
       phase: 'QUEUED',
       progress: 0,
       message: 'Job encolado para procesamiento.',
@@ -47,7 +49,7 @@ export class GenerationOrchestrator {
 
     console.log(`\n────────────────────────────────────────────────────────────`);
     console.log(`🚀 [Job Iniciado] ID: ${job.id}`);
-    console.log(`📝 [Prompt]: "${input.prompt}" (Estilo: ${input.style}, Max Assets: ${input.maxAssets})`);
+    console.log(`📝 [Prompt]: "${input.prompt}" (Modo: ${input.mode}, Estilo: ${input.style}, Max Assets: ${input.maxAssets})`);
     console.log(`────────────────────────────────────────────────────────────`);
 
     // Lanzar pipeline asíncrono en background
@@ -88,9 +90,11 @@ export class GenerationOrchestrator {
     await this.updatePhase(job, 'ANALYZING', 15, 'Analizando prompt y descomponiendo escena 3D...');
     console.log(`🧠 [Fase 1/3 - LLM] Descomponiendo prompt en WorldSpec...`);
     
-    const worldSpec = await this.ctx.llmProvider.decomposePrompt(input);
+    const worldSpec = this.normalizeSpec(await this.ctx.llmProvider.decomposePrompt(input), input, job.id);
+    // Modo 'objects': no se toca el mundo del usuario, así que no hay entorno que generar
+    const generateWorld = input.mode !== 'objects';
     job.worldSpec = worldSpec;
-    job.environment = { status: 'PENDING' };
+    job.environment = generateWorld ? { status: 'PENDING' } : undefined;
     job.assets = worldSpec.assets.map((a) => ({
       id: a.id,
       name: a.name,
@@ -104,13 +108,13 @@ export class GenerationOrchestrator {
     // Fase 2: Generación concurrente (World Labs + Tripo 3D)
     await this.updatePhase(
       job,
-      'GENERATING_WORLD',
+      generateWorld ? 'GENERATING_WORLD' : 'GENERATING_ASSETS',
       20,
-      `Generando entorno 3D y ${worldSpec.assets.length} assets en paralelo...`
+      this.describeGeneration(input.mode, worldSpec.assets.length)
     );
-    console.log(`⚡ [Fase 2/3 - Generación Concurrente] Disparando World Labs y ${worldSpec.assets.length} assets de Tripo simultáneamente...`);
+    console.log(`⚡ [Fase 2/3 - Generación Concurrente] ${this.describeGeneration(input.mode, worldSpec.assets.length)}`);
 
-    const totalTasks = 1 + worldSpec.assets.length;
+    const totalTasks = (generateWorld ? 1 : 0) + worldSpec.assets.length;
     let completedTasks = 0;
     const baseProgress = 20;
     const maxGenProgress = 85;
@@ -120,7 +124,7 @@ export class GenerationOrchestrator {
       completedTasks++;
       const currentProgress = Math.round(baseProgress + (completedTasks * progressPerTask));
       const phase: GenerationJob['phase'] =
-        job.environment?.status === 'READY' ? 'GENERATING_ASSETS' : 'GENERATING_WORLD';
+        !generateWorld || job.environment?.status === 'READY' ? 'GENERATING_ASSETS' : 'GENERATING_WORLD';
       await this.updatePhase(
         job,
         phase,
@@ -131,6 +135,7 @@ export class GenerationOrchestrator {
 
     // Tarea concurrente: Entorno (World Labs)
     const worldLabsPromise = (async () => {
+      if (!generateWorld) return;
       try {
         console.log(`🌍 [World Labs] Solicitando generación del entorno...`);
         job.environment = { status: 'GENERATING' };
@@ -187,6 +192,14 @@ export class GenerationOrchestrator {
     // Esperar a que TODAS las tareas concurrentes finalicen
     await Promise.all([worldLabsPromise, ...assetPromises]);
 
+    // Si lo único que se pidió falló, el job falla (en modo completo se conserva lo que haya salido bien)
+    if (input.mode === 'world' && job.environment?.status !== 'READY') {
+      throw new Error(job.environment?.error || 'No se pudo generar el escenario.');
+    }
+    if (input.mode === 'objects' && !job.assets.some((a) => a.status === 'READY')) {
+      throw new Error(job.assets.find((a) => a.error)?.error || 'No se pudo generar ningún objeto.');
+    }
+
     // Fase 3: Composición final
     await this.updatePhase(job, 'COMPOSING', 90, 'Componiendo escena 3D y calculando anclajes espaciales...');
     console.log(`🏗️ [Fase 3/3 - World Builder] Componiendo posiciones espaciales y anclajes en Three.js...`);
@@ -195,6 +208,37 @@ export class GenerationOrchestrator {
     await this.updatePhase(job, 'COMPLETED', 100, '¡Mundo 3D generado y listo para explorar!');
     console.log(`🎉 [Job Completado] ID: ${job.id} — Escena lista para renderizar.`);
     console.log(`────────────────────────────────────────────────────────────\n`);
+  }
+
+  private describeGeneration(mode: WorldPromptInput['mode'], assetCount: number): string {
+    let text: string;
+    if (mode === 'world') text = 'Generando solo el escenario 3D...';
+    else if (mode === 'objects') text = `Generando ${assetCount} objeto(s) 3D con Tripo para añadir a la escena...`;
+    else text = `Generando entorno 3D y ${assetCount} assets en paralelo...`;
+    return text;
+  }
+
+  /**
+   * Ajusta la salida del LLM al modo pedido: sin objetos si solo se quiere el escenario;
+   * con objetos únicos (id con sufijo del job) si se añaden a una escena existente, para no
+   * sobrescribir en storage/ modelos de generaciones anteriores con el mismo id.
+   */
+  private normalizeSpec(spec: WorldSpec, input: WorldPromptInput, jobId: string): WorldSpec {
+    let result = spec;
+
+    if (input.mode === 'world') {
+      result = { ...spec, assets: [] };
+    } else if (spec.assets.length === 0) {
+      throw new Error('La IA no devolvió ningún objeto para generar.');
+    } else if (input.mode === 'objects') {
+      const token = jobId.slice(0, 6);
+      result = {
+        ...spec,
+        assets: spec.assets.slice(0, input.maxAssets).map((a, i) => ({ ...a, id: `${a.id}-${token}-${i + 1}` })),
+      };
+    }
+
+    return result;
   }
 
   private async updatePhase(

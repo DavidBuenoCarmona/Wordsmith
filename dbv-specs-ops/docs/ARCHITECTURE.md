@@ -36,11 +36,13 @@
 │   │   └── tests/
 │   └── client/                # Frontend Web & Visor 3D
 │       ├── src/
-│       │   ├── components/    # Componentes UI (PromptBar, ProgressOverlay, Controls)
-│       │   ├── viewer/        # Lógica de Three.js / Spark (SceneManager, AssetLoader, CameraController)
-│       │   ├── hooks/         # Custom hooks para polling y estado de generación
-│       │   └── state/         # Gestión de estado de UI y escena 3D
+│       │   ├── components/    # Componentes UI (PromptBar, ProgressOverlay, OutlinerPanel, SceneSelector...)
+│       │   ├── viewer/        # Lógica de Three.js / Spark (WorldViewer3D: selección, gizmo, historial, suelo)
+│       │   ├── hooks/         # Hooks: generación (SSE), atajos de editor, favoritos
+│       │   ├── api/           # Cliente HTTP de storage (escenas, subidas) con patrón Result
+│       │   └── utils/         # Funciones puras (orden alfabético, favoritos)
 │       └── tests/
+├── storage/                   # Datos del usuario: worlds/, models/, scenes/, generations/, favorites.json
 ├── dbv-specs-ops/             # Documentación y control SDD del proyecto
 └── [config files]             # package.json (monorepo/workspaces), tsconfig.json, .env.example
 ```
@@ -60,6 +62,19 @@
 - **Tipado Estricto:** `strict: true` en TypeScript. Prohibido el uso de `any`.
 - **Manejo de Errores:** Patrón Result (`ok` / `err`) o clases de error tipadas para evitar fallos silenciosos en llamadas asíncronas a APIs externas.
 - **Funciones Puras:** Descomposición de la composición espacial (cálculo de coordenadas, bounding boxes y escalas) en funciones matemáticas puras y testeadas.
+
+### Persistencia en disco (`storage/`) — v0.4.0
+
+- **Escenas:** `storage/scenes/<id>.json`, contrato `SceneFileSchema` (`@wordsmith/shared`): referencia al mundo (URL, tipo, colisionador) + modelos con posición/rotación/escala + cámara + suelo + iluminación. El id es el slug del nombre (regex `SceneIdSchema`, sin path traversal).
+- **Importaciones:** `POST /api/storage/upload` guarda mapas en `storage/worlds/` y modelos en `storage/models/` con nombre `slug-<sha1>`: la misma importación no se duplica y la URL (`/api/storage/files/...`) es persistente. Las URLs `blob:` nunca se guardan en escenas.
+- **Favoritos:** `storage/favorites.json` (`{worlds: [], models: []}`), API `GET/PUT /api/storage/favorites/:kind`.
+- **Orden:** los listados de mundos y modelos se ordenan en el servidor (`compareByName`) y el cliente aplica pins primero (`sortWithFavorites`).
+
+### Visor y edición de escena (cliente)
+
+- `WorldViewer3D` es la **fuente de verdad** de los objetos de la escena (no el `WorldSpec` del job): expone `listObjects`, `serializeModels`, historial (undo/redo), foco de cámara, suelo y presentación. React solo refleja su estado mediante callbacks (`onObjectsChanged`, `onAssetTransformed`, `onFloorChanged`).
+- **Suelo (Floor):** suelo manual > malla de colisión de World Labs > malla del entorno > suelo base; el rayo parte del propio objeto. El pivote de los modelos está en su centro.
+- **Modos de generación** (`all` | `world` | `objects`): el orquestador (`normalizeSpec`) adapta el `WorldSpec`; `objects` salta World Labs y el cliente añade los modelos con `spawnModelsInFront`. El prompt del LLM es único (`llmPrompt.ts`) para los tres proveedores.
 
 ### Gestión de Estado y Asincronía
 

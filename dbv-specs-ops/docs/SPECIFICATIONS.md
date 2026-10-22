@@ -93,6 +93,39 @@ El sistema deberá mantener los formatos de salida adecuados para permitir futur
 
 Criterio de aceptación: Los resultados deberán poder conservarse como assets reutilizables.
 
+### 3.1. Ronda v0.4.0 — Autoría y persistencia de escenas
+
+*Origen: feedback de uso previo al concurso. Alcance aprobado por el autor el 2026-10-16.*
+
+**R1 · Orden alfabético y pins.**
+Las listas de mundos y de modelos se muestran en orden alfabético (sin distinguir mayúsculas/acentos, números naturales). El usuario puede fijar (pin) varios mundos y varios modelos favoritos; los pins se mantienen al principio de su lista y persisten entre sesiones.
+Criterio de aceptación: con `["zorro","Árbol 10","árbol 2","banco"]` y `zorro` fijado, el orden es `zorro, árbol 2, Árbol 10, banco`; el pin sobrevive a recargar la página.
+
+**R2 · Outliner y foco de cámara.**
+Un panel derecho lista todos los objetos presentes en la escena (generados, añadidos desde la librería o importados), con selección, renombrado, ocultar/mostrar, bloquear y borrar. La tecla `F` (y un botón por fila) centra y encuadra la cámara en el objeto seleccionado; sin selección encuadra toda la escena.
+Criterio de aceptación: tras añadir 3 modelos, los 3 aparecen en el panel; seleccionar uno y pulsar `F` lo deja centrado en pantalla.
+
+**R3 · Edición numérica y atajos estilo Unreal.**
+El inspector permite escribir posición, rotación (grados) y escala del objeto seleccionado, sincronizado con el gizmo en ambos sentidos. Atajos: `W` mover, `E` rotar, `R` escalar, `F` enfocar, `Supr` borrar, `Ctrl+Z/Ctrl+Y` deshacer/rehacer, `Ctrl+D` duplicar. WASD/QE vuelan la cámara solo con el ratón pulsado o sin selección.
+Criterio de aceptación: escribir `7.5` en X mueve el objeto a x=7.5 y `Ctrl+Z` lo devuelve.
+
+**R4 · Escenas guardables.**
+Una escena se guarda como un fichero JSON simple (`storage/scenes/<id>.json`, contrato `SceneFileSchema`) con: referencia al mundo (url, tipo, colisionador), lista de modelos (url, nombre, posición, rotación, escala, oculto, bloqueado), cámara, suelo calibrado e iluminación. Cargar una escena restaura mundo y modelos sin pasos manuales. Todo archivo importado desde disco se persiste en `storage/` para poder restaurarse.
+Criterio de aceptación: guardar, recargar la página y cargar la escena reproduce las mismas posiciones y rotaciones.
+
+**R5 · Floor fiable.**
+La acción "Floor" apoya la base del objeto (según escala y rotación) sobre la primera superficie situada bajo el objeto. Prioridad de fuentes: suelo calibrado manualmente > malla de colisión de World Labs > malla del entorno > suelo base del mundo.
+Criterio de aceptación: con el colisionador del Parque Infantil, la base del objeto coincide con la superficie (±5 cm) y no sube a tejados ni techos.
+
+**R6 · Mejoras de presentación.**
+Modo presentación (`H`: oculta UI y orbita la cámara), captura PNG, presets de iluminación (día/atardecer/noche/niebla) y ayuda de atajos (`?`).
+
+**R7 · Selector de modo de generación.**
+La barra de prompt permite elegir qué genera la IA: **Everything** (mundo + objetos, reemplaza la escena), **Scenery only** (solo el escenario con World Labs; conserva los objetos del usuario) y **Objects only** (solo modelos de Tripo, que se **añaden** a la escena actual). En los modos con objetos se elige cuántos (1–5). En *Objects only*, si el usuario pide varios del mismo tipo ("5 piratas diferentes"), cada objeto debe tener un prompt de Tripo distinto; los nuevos aparecen en fila delante de la cámara, separados según su tamaño y apoyados en el suelo.
+Criterio de aceptación: con una escena de 1 objeto, pedir 4 objetos en modo *Objects only* deja 5 objetos en el Outliner sin llamar a World Labs; pedir *Scenery only* cambia el mundo sin llamar a Tripo y conserva los 5 objetos.
+
+**Fuera de alcance de esta ronda:** selección múltiple, edición de materiales, exportar la escena a GLB/USD, escenas compartidas entre usuarios.
+
 ## 🏗️ 4. Propuesta de Solución Técnica (Resumen)
 *Enlace directo con `ARCHITECTURE.md`.*
 

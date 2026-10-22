@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Wordsmith — jury presentation</title>
+<!--
+  Wordsmith — AI-Native 3D World Director
+  Copyright (c) 2026 David Bueno Carmona · https://github.com/davidbuenov
+  Licensed under the MIT License. See LICENSE for details.
+
+  Self-contained deck: reveal.js 5.2.1 and mermaid 11.4.1 are in ./vendor (MIT), so it works with no internet.
+  Open this file in Chrome or Edge. Keys: arrows = move, S = speaker notes, F = fullscreen, O = overview, ?print-pdf = PDF export.
+-->
+<link rel="stylesheet" href="vendor/reveal/reveal.css">
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #131b36;
+    --panel2: #1a2447;
+    --line: #2c3a72;
+    --text: #e8ecf8;
+    --muted: #9aa7d6;
+    --accent: #7c9cff;
+    --warm: #ff8a5c;
+    --good: #3ddbb0;
+    --bad: #ff6b81;
+  }
+  html, body, .reveal-viewport, body.reveal-viewport { background: var(--bg) !important; }
+  .reveal { font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; color: var(--text); font-size: 28px; }
+  .reveal .slides { text-align: left; }
+  .reveal .slides section { padding: 0; }
+  .reveal h1, .reveal h2, .reveal h3 { font-family: inherit; text-transform: none; color: var(--text); font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+  .reveal h1 { font-size: 2.3em; line-height: 1.05; }
+  .reveal h2 { font-size: 1.35em; margin-bottom: 0.35em; }
+  .reveal h2 small { display: block; font-size: 0.5em; font-weight: 500; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.25em; }
+  .reveal h3 { font-size: 0.85em; color: var(--accent); margin-bottom: 0.3em; }
+  .reveal p, .reveal li { line-height: 1.35; }
+  .reveal ul { margin: 0; padding-left: 1.1em; display: block; }
+  .reveal li { margin-bottom: 0.3em; }
+  .reveal strong { color: #fff; }
+  .reveal code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 0.82em; background: #1b2650; padding: 0.05em 0.35em; border-radius: 5px; color: #cfe0ff; }
+  .reveal .muted { color: var(--muted); }
+  .reveal .lead { font-size: 1.1em; color: var(--muted); max-width: 22em; }
+  .reveal section.slide-bg { background: radial-gradient(1200px 600px at 85% 10%, #1b2a66 0%, transparent 60%); }
+
+  .cols { display: grid; gap: 28px; align-items: start; }
+  .cols.c2 { grid-template-columns: 1fr 1fr; }
+  .cols.c3 { grid-template-columns: 1fr 1fr 1fr; }
+  .cols.wide-left { grid-template-columns: 1.5fr 1fr; }
+  .cols.wide-right { grid-template-columns: 1fr 1.5fr; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; }
+  .card.warm { border-color: #7a4a35; background: #241a1d; }
+  .card.good { border-color: #1f6b5a; background: #10231f; }
+  .card h3 { margin-top: 0; }
+  .card p, .card li { font-size: 0.78em; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 22px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .stat b { display: block; font-size: 1.6em; color: var(--accent); line-height: 1; }
+  .stat span { font-size: 0.62em; color: var(--muted); }
+
+  .diagram { display: flex; justify-content: center; align-items: center; height: 520px; }
+  .diagram.short { height: 430px; }
+  .diagram.tall { height: 560px; }
+  .diagram svg { max-width: 100%; max-height: 100%; height: auto; }
+  .diagram .err { color: var(--bad); font-size: 14px; white-space: pre-wrap; }
+  .reveal .diagram .nodeLabel p, .reveal .diagram .edgeLabel p { margin: 0; line-height: 1.25; }
+
+  .shot { border-radius: 12px; border: 1px solid var(--line); display: block; margin: 0; box-shadow: 0 10px 40px rgba(0,0,0,.45); max-width: 100%; }
+  .caption { font-size: 0.55em; color: var(--muted); margin-top: 8px; }
+  .strip { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  table.t { border-collapse: collapse; width: 100%; font-size: 0.72em; }
+  table.t th { text-align: left; color: var(--accent); font-weight: 600; border-bottom: 2px solid var(--line); padding: 6px 10px; }
+  table.t td { border-bottom: 1px solid #1f2a55; padding: 7px 10px; vertical-align: top; line-height: 1.3; }
+  table.t td:first-child { color: #fff; font-weight: 600; white-space: nowrap; }
+  .tag { display: inline-block; font-size: 0.55em; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); margin-right: 6px; }
+
+  .divider { display: flex; flex-direction: column; justify-content: center; height: 640px; }
+  .divider h1 { color: #fff; }
+  .divider .num { font-size: 0.9em; color: var(--accent); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 14px; }
+  kbd { font-family: Consolas, monospace; font-size: .8em; background: #1b2650; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 .4em; color: #fff; }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- 1 · Title -->
+<section class="slide-bg">
+  <div class="cols wide-left" style="align-items:center; height:640px">
+    <div>
+      <div class="muted" style="font-size:.6em; letter-spacing:.2em; text-transform:uppercase; margin-bottom:18px">Tripo jury presentation · v0.4.0</div>
+      <h1>Wordsmith</h1>
+      <p class="lead" style="margin-top:18px">An AI-native 3D world director: one sentence becomes a composed, editable 3D world you can walk through in the browser.</p>
+      <p class="muted" style="font-size:.6em; margin-top:34px">David Bueno · TypeScript · React · Three.js · Fastify · <strong>Tripo 3D</strong> · World Labs · Jupiter SR</p>
+    </div>
+    <div style="text-align:center">
+      <img class="shot" style="width:100%" src="img/island.png" alt="Pirate island: World Labs scenery with Tripo-generated characters and ships">
+      <div class="caption">Real screenshot of the app. Scenery: World Labs. Characters and ships: Tripo.</div>
+    </div>
+  </div>
+  <aside class="notes">
+    Hook: everything in this picture came from text prompts. The beach and cliffs are a World Labs Gaussian splat; the three pirates and the two ships are Tripo GLB models, scaled, rotated and put on the sand by our placement engine.
+    Promise: what it does, how it is built, and where Tripo fits.
+  </aside>
+</section>
+
+<!-- 2 · The problem and the product -->
+<section>
+  <h2><small>The product</small>From one sentence to a world you can edit</h2>
+  <div class="cols wide-left">
+    <div>
+      <ul>
+        <li><strong>The problem:</strong> composing a 3D scene means several DCC tools, hunting for assets and hand-placing them in an engine.</li>
+        <li><strong>Wordsmith acts as a spatial director.</strong> An LLM turns the prompt into a typed <code>WorldSpec</code>.</li>
+        <li><strong>World Labs</strong> builds the environment (Gaussian splat); <strong>Tripo</strong> builds every prop, character and building (GLB).</li>
+        <li>The placement engine sizes, rotates and <strong>snaps each object to the real floor</strong>.</li>
+        <li>You then <strong>edit, save and present</strong> the result, also on a glasses-free Jupiter SR display.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Example prompt</h3>
+      <p><em>“Abandoned pirate island with sunken galleon and treasure chest.”</em></p>
+      <p class="muted">→ the LLM plans scenery + up to 5 objects<br>→ World Labs generates the beach and cliffs<br>→ Tripo generates captain, cook, sailor, two ships<br>→ everything is composed and ready to fly through</p>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>3</b><span>generation modes: everything · scenery · objects</span></div>
+    <div class="stat"><b>3</b><span>LLM providers + offline mock fallback</span></div>
+    <div class="stat"><b>103</b><span>automated tests, strict TypeScript</span></div>
+    <div class="stat"><b>0 keys</b><span>needed to run the full UI (mock mode)</span></div>
+  </div>
+  <aside class="notes">
+    Keep it short. The key sentence: Wordsmith is the director, the generative services are the crew. Mock mode matters for reproducibility: the whole UI and the spatial composition can be tested with no credits.
+  </aside>
+</section>
+
+<!-- 3 · What it can do (capabilities) -->
+<section>
+  <h2><small>What it can do</small>Generate, compose, edit, present</h2>
+  <div class="cols c3">
+    <div class="card"><h3>1 · Generate</h3><p>Three modes in the prompt bar: <strong>Everything</strong> (world + objects), <strong>Scenery only</strong> (keeps your objects) and <strong>Objects only</strong> (adds Tripo models to the current scene, e.g. <em>“5 different pirates with swords”</em>). Live progress by Server-Sent Events.</p></div>
+    <div class="card"><h3>2 · Compose</h3><p>Bounding boxes, real size, rotation and <strong>floor snapping</strong> using the World Labs <strong>collision mesh</strong>. New objects appear in a row in front of the camera, resting on the ground.</p></div>
+    <div class="card"><h3>3 · Edit</h3><p><strong>Outliner</strong> (select, focus, rename, hide, lock, delete), numeric inspector, gizmo <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd>, undo / redo, duplicate, floor calibration. Shortcuts follow Unreal Engine.</p></div>
+    <div class="card"><h3>4 · Save &amp; reuse</h3><p>Scenes are plain <strong>JSON</strong> files (world, models, transforms, camera, lighting). Imported maps and GLB models are stored by content hash; pins keep favourites on top.</p></div>
+    <div class="card"><h3>5 · Present</h3><p><kbd>H</kbd> hides the UI and orbits the camera. PNG <strong>capture</strong>. Lighting presets: Day, Sunset, Night, Foggy.</p></div>
+    <div class="card good"><h3>6 · Glasses-free 3D</h3><p>Native <strong>Jupiter SR</strong> support: 1–30 interlaced views, optical calibration, profile import / export, fullscreen 1:1 subpixel alignment.</p></div>
+  </div>
+  <aside class="notes">
+    Walk the six cards left to right, one sentence each. The important message for the jury: generation is only the first minute; the tool is built so the result can be corrected by hand and kept.
+  </aside>
+</section>
+
+<!-- 4 · Screenshot: editor -->
+<section>
+  <h2><small>In the app</small>Pick an object, move it, it stays on the floor</h2>
+  <div class="cols wide-left" style="align-items:center">
+    <div>
+      <img class="shot" style="width:100%" src="img/select.png" alt="Selected character with the transform gizmo and numeric inspector">
+    </div>
+    <div>
+      <ul style="font-size:.8em">
+        <li>Click an entry in the <strong>Outliner</strong> (right) or in the scene: the gizmo and the <strong>numeric inspector</strong> appear.</li>
+        <li><kbd>F</kbd> flies the camera to the object; with nothing selected it frames the whole scene.</li>
+        <li>The base of every model rests exactly on the surface, taking scale and rotation into account.</li>
+        <li>Every edit is undoable: <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd>.</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">
+    Live demo candidate. Select the captain, press F, nudge him with the gizmo, type an exact scale in the inspector, then Ctrl+Z.
+  </aside>
+</section>
+
+<!-- 5 · Architecture overview -->
+<section>
+  <h2><small>Architecture</small>System at a glance</h2>
+  <div class="diagram"><script type="text/plain" class="mmd">
+flowchart LR
+  subgraph B["Browser"]
+    direction TB
+    UI["React 18 UI<br/>PromptBar · Outliner · Scenes · Jupiter panel"]
+    V["WorldViewer3D<br/>Three.js + SparkRenderer<br/>gizmos · floor · history<br/>loads GLB / SPZ from /api/storage/files"]
+  end
+  subgraph S["Fastify server"]
+    direction TB
+    API["REST + SSE<br/>/api/generate · /api/jobs/:id/events<br/>/api/storage/*"]
+    ORC["GenerationOrchestrator<br/>QUEUED to COMPLETED"]
+    ST[("storage/<br/>worlds · models · scenes")]
+  end
+  subgraph X["AI services"]
+    direction TB
+    LLM["LLM<br/>OpenAI · Anthropic · Gemini"]
+    WL["World Labs Marble<br/>Gaussian splat .spz"]
+    TR["Tripo 3D<br/>text-to-model .glb"]
+  end
+  UI <-->|"JSON · SSE progress"| API
+  UI --> V
+  API --> ORC
+  ORC --> LLM
+  ORC --> WL
+  ORC --> TR
+  ORC --> ST
+  </script></div>
+  <aside class="notes">
+    Three actors: the browser (viewer + editor), the Fastify orchestrator, and the generative services. The browser never talks to the AI providers; keys live only on the server. Progress comes back as Server-Sent Events, so a long generation never blocks the UI.
+  </aside>
+</section>
+
+<!-- 6 · Monorepo -->
+<section>
+  <h2><small>Modules</small>One monorepo, one typed contract</h2>
+  <div class="diagram short" style="height:300px"><script type="text/plain" class="mmd">
+flowchart LR
+  shared["@wordsmith/shared<br/>Zod schemas: WorldSpec · Job · Scene · Events"]
+  server["@wordsmith/server<br/>Fastify · orchestrator · providers<br/>hexagonal"]
+  client["@wordsmith/client<br/>React 18 · Three.js · Tailwind<br/>Jupiter SDK"]
+  sdd["dbv-specs-ops<br/>specs · ADRs · backlog"]
+  server --> shared
+  client --> shared
+  sdd -. "drives" .-> server
+  sdd -. "drives" .-> client
+  </script></div>
+  <div class="cols c3" style="margin-top:14px">
+    <div class="card"><h3>One schema, two runtimes</h3><p><code>WorldSpec</code>, <code>GenerationJob</code> and <code>SceneFile</code> are Zod contracts imported by both server and client. LLM output is validated before anything is generated.</p></div>
+    <div class="card"><h3>Spec-driven</h3><p>Built with the SDD framework <strong>dbv-specs-ops</strong>: spec, plan, build, test, ship; decisions logged as ADRs.</p></div>
+    <div class="card good"><h3>Tested</h3><p>103 tests (Vitest) across the three packages, prompt evals, and an end-to-end run in real Chrome driven over CDP.</p></div>
+  </div>
+  <aside class="notes">
+    The contract package is what keeps the LLM honest: if the model returns something that does not parse as a WorldSpec, the job fails early instead of producing a broken scene.
+  </aside>
+</section>
+
+<!-- 7 · Hexagonal server -->
+<section>
+  <h2><small>The server</small>Hexagonal: the orchestrator never knows which provider it talks to</h2>
+  <div class="diagram short" style="height:360px"><script type="text/plain" class="mmd">
+flowchart LR
+  IF["interfaces<br/>Fastify routes<br/>SSE stream"]
+  APP["application<br/>GenerationOrchestrator"]
+  PORTS(["ports<br/>ILLMProvider<br/>IWorldLabsProvider<br/>ITripoProvider<br/>IJobRepository<br/>IEventPublisher"])
+  AD["infrastructure<br/>OpenAI · Anthropic · Gemini<br/>HttpWorldLabsProvider<br/>HttpTripoProvider<br/>Mock providers · GenerationStorage"]
+  IF --> APP --> PORTS
+  AD -. implements .-> PORTS
+  </script></div>
+  <div class="cols c3" style="margin-top:14px">
+    <div class="card"><h3>Provider cascade</h3><p>LLM priority: OpenAI, then Anthropic, then Gemini, then a deterministic mock. Chosen at start-up from the keys that are present.</p></div>
+    <div class="card"><h3>Never stuck</h3><p>If Tripo or World Labs fails or credits run out, the provider falls back to models already stored locally.</p></div>
+    <div class="card"><h3>Reproducible</h3><p>Mock providers make the UI, the composition and the tests deterministic and free.</p></div>
+  </div>
+  <aside class="notes">
+    Ports and adapters. The Tripo adapter is about one file: create a task, poll its status, download the GLB, cache it. Swapping or faking it never touches the orchestrator.
+  </aside>
+</section>
+
+<!-- 8 · Pipeline -->
+<section>
+  <h2><small>Data flow</small>One generation job</h2>
+  <div class="diagram tall"><script type="text/plain" class="mmd">
+sequenceDiagram
+  actor U as User
+  participant C as Client
+  participant S as Server
+  participant L as LLM
+  participant W as World Labs
+  participant T as Tripo 3D
+  U->>C: prompt + mode + object count
+  C->>S: POST /api/generate
+  S-->>C: job id
+  C->>S: GET /api/jobs/:id/events (SSE)
+  S->>L: decompose prompt
+  L-->>S: WorldSpec (validated with Zod)
+  par scenery
+    S->>W: environment prompt
+    W-->>S: .spz splat + collision mesh
+  and objects
+    S->>T: one text-to-model task per object
+    T-->>S: .glb (polled until ready)
+  end
+  S-->>C: COMPOSING then COMPLETED, world + models
+  C->>C: place on the floor and render
+  </script></div>
+  <aside class="notes">
+    Phases: QUEUED, ANALYZING, GENERATING_WORLD, GENERATING_ASSETS, COMPOSING, COMPLETED or FAILED. Each phase is pushed to the client as an SSE event with progress and message. Mode "objects" skips World Labs; mode "world" produces zero assets.
+  </aside>
+</section>
+
+<!-- 9 · Tripo part divider -->
+<section class="slide-bg">
+  <div class="divider">
+    <div class="num">Part two</div>
+    <h1>Where Tripo<br>fits in</h1>
+    <p class="lead" style="margin-top:20px">Every character, ship and building in the scene is a Tripo text-to-model result.</p>
+  </div>
+  <aside class="notes">Tripo is not a decoration of the project: it produces all the individual objects, which are the part of the scene the user interacts with.</aside>
+</section>
+
+<!-- 10 · Tripo integration -->
+<section>
+  <h2><small>Tripo 3D</small>From a prompt line to a GLB on the sand</h2>
+  <div class="diagram short" style="height:200px"><script type="text/plain" class="mmd">
+flowchart LR
+  P["LLM asset spec<br/>name · category · prompt"] --> TK["Tripo task<br/>text-to-model"]
+  TK --> PL["poll status<br/>every 2.5 s"]
+  PL --> DL["download GLB"]
+  DL --> CA["cache in storage/models<br/>slug + job id"]
+  CA --> PE["placement engine<br/>size · rotation · floor"]
+  PE --> VW["Three.js viewer"]
+  </script></div>
+  <div class="cols c3" style="margin-top:14px">
+    <div class="card"><h3>Prompts written by the LLM</h3><p>Each object gets a prompt optimised for Tripo (style, pose, material) plus a category: prop, character, architecture, nature or vehicle.</p></div>
+    <div class="card"><h3>Credits-aware</h3><p>Object count is chosen by the user (1–5). Models are cached with unique per-job ids so a new job never overwrites a model used by a saved scene.</p></div>
+    <div class="card good"><h3>A growing library</h3><p>Every generated model stays in <code>storage/models</code>: <strong>42 GLB models</strong> today, reusable from the <em>3D Models</em> menu in any scene.</p></div>
+  </div>
+  <aside class="notes">
+    The Tripo adapter reads TRIPO_API_KEY; without it the mock provider answers from cached models. The 42 models include pirates, ships, a cyclops, a unicorn, a pyramid, a cyberpunk android and more, all generated through this pipeline or imported by hand.
+  </aside>
+</section>
+
+<!-- 11 · Screenshot: model library + scene -->
+<section>
+  <h2><small>In the app</small>Scenes made from Tripo models</h2>
+  <div class="cols c2">
+    <div>
+      <img class="shot" style="width:100%" src="img/desert.png" alt="Desert pyramid scene composed from Tripo models">
+      <div class="caption">Saved scene “Desert-pyramid”: five Tripo objects placed on World Labs terrain.</div>
+    </div>
+    <div>
+      <img class="shot" style="width:100%" src="img/light.png" alt="Pirate island with a different lighting preset">
+      <div class="caption">Same pirate scene with the Sunset lighting preset: one click, no regeneration.</div>
+    </div>
+  </div>
+  <p style="margin-top:18px; font-size:.8em">A scene is a small JSON file: <code>world</code> + <code>models[]</code> (position, rotation, scale, hidden, locked) + <code>camera</code> + <code>lighting</code>. Restoring it needs <strong>no AI call and no credits</strong>.</p>
+  <aside class="notes">
+    This is the answer to "what about the cost": generate once, save the scene, reopen it for free at the venue.
+  </aside>
+</section>
+
+<!-- 12 · Floor -->
+<section>
+  <h2><small>Spatial composition</small>Putting things on the floor of a Gaussian splat</h2>
+  <div class="cols wide-left">
+    <div class="diagram short"><script type="text/plain" class="mmd">
+flowchart TB
+  S{"floor source"} -->|"1"| M["manual floor level<br/>(Outliner)"]
+  S -->|"2"| C["World Labs collision mesh<br/>validated against the camera box"]
+  S -->|"3"| E["environment mesh"]
+  S -->|"4"| D["base floor Y = -1.5"]
+  M --> R["ray from the object's own top<br/>first surface below it"]
+  C --> R
+  E --> R
+  D --> R
+  R --> P["base = floor + (pivot - base)<br/>scale and rotation included"]
+    </script></div>
+    <div>
+      <h3>Two bugs that taught us something</h3>
+      <ul style="font-size:.75em">
+        <li><strong>Models floated half their height:</strong> the pivot is the model centre, but the full height was added. Now computed from the bounding box.</li>
+        <li><strong>A splat has no triangles:</strong> raycasting it gave random hits. The collision mesh from World Labs fixed it.</li>
+        <li>The ray starts at the object, not 150 m up, so it no longer lands on roofs.</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">
+    The collision mesh is downloaded invisible; its orientation is validated: the camera origin must be inside its bounding box, otherwise it is discarded and we fall back to the next source.
+  </aside>
+</section>
+
+<!-- 13 · Jupiter SR -->
+<section>
+  <h2><small>Display</small>Glasses-free 3D on the Jupiter SR</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="shot" style="overflow:hidden; height:430px; background:#0b1020"><img style="width:190%; max-width:none; margin:-170px 0 0 -45%" src="img/jupiter.png" alt="Jupiter SR calibration panel"></div>
+      <div class="caption">Jupiter calibration panel: render, parallax and optical settings, with live preview.</div>
+    </div>
+    <div>
+      <ul style="font-size:.78em">
+        <li><strong>OFF:</strong> direct WebGL at native resolution (sharpest 2D; best for splats).</li>
+        <li><strong>ON:</strong> 1–30 synthetic views interlaced to the lens array through <code>jupiter-interlace-sdk</code>.</li>
+        <li>Live tuning: views, baseline, zero-parallax plane, pitch, tan, offset, subpixel order, rotation.</li>
+        <li>Profiles export / import as JSON; draco and KTX2 decoders served locally.</li>
+      </ul>
+      <div class="card good" style="margin-top:10px"><h3>Why it matters</h3><p>Tripo meshes gain real depth: a pirate ship pops out of the screen without VR or glasses.</p></div>
+    </div>
+  </div>
+  <aside class="notes">
+    Mention the sister project, Holo-Companion, which runs on the same frame. Here the focus is the director tool; the display is an output option.
+  </aside>
+</section>
+
+<!-- 14 · Safety and quality -->
+<section>
+  <h2><small>Engineering</small>How we kept it reliable</h2>
+  <div class="cols wide-left">
+    <div class="diagram short"><script type="text/plain" class="mmd">
+timeline
+  title Releases
+  17 Sep : v0.2.0 · MVP · hexagonal server · SSE · procedural viewer
+  04 Oct : v0.3.0 · Jupiter SR · gizmos · browsers · LLM cascade
+  16 Oct : v0.4.0 · scenes · Outliner · modes · floor
+    </script></div>
+    <div>
+      <ul style="font-size:.78em">
+        <li><strong>Spec-driven:</strong> spec, plan, build, test, ship; every decision an ADR.</li>
+        <li><strong>103 tests</strong>, plus prompt evals and a manual end-to-end in real Chrome (CDP).</li>
+        <li><strong>Validate at the edge:</strong> Zod on LLM output, prompts and scene files.</li>
+        <li><strong>Honest debt:</strong> <code>WorldViewer3D.ts</code> is over 2,000 lines; the split is planned and documented.</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">
+    Mention what is accepted debt on purpose: scene URLs can point anywhere because this is a local single-user tool; an allow-list is needed before hosting it.
+  </aside>
+</section>
+
+<!-- 15 · Takeaways -->
+<section>
+  <h2><small>Takeaways</small>What I learned</h2>
+  <div class="cols c3">
+    <div class="card"><h3>1 · The LLM plans, code decides</h3><p>A strict <code>WorldSpec</code> contract stops a creative model from breaking the scene.</p></div>
+    <div class="card"><h3>2 · Generate once, reuse forever</h3><p>Saved scenes and cached Tripo models make the demo free and repeatable.</p></div>
+    <div class="card"><h3>3 · Geometry beats guessing</h3><p>Real floor from the collision mesh, pivot-aware placement: objects look planted, not pasted.</p></div>
+    <div class="card"><h3>4 · Ports make it testable</h3><p>Mocks for the LLM, World Labs and Tripo give deterministic tests and a no-credit demo.</p></div>
+    <div class="card"><h3>5 · Editing is the product</h3><p>Generation gets 80 %; Outliner, gizmo, undo and presentation mode close the rest.</p></div>
+    <div class="card"><h3>6 · Test in the real browser</h3><p>A headless Chrome run caught bugs unit tests could not.</p></div>
+  </div>
+  <aside class="notes">Close on the live demo.</aside>
+</section>
+
+<!-- 16 · Demo -->
+<section class="slide-bg">
+  <div class="cols wide-left" style="align-items:center; height:640px">
+    <div>
+      <h1>Live demo</h1>
+      <ul style="margin-top:22px; font-size:.9em">
+        <li>Load the saved pirate scene (no credits)</li>
+        <li>Select a character, <kbd>F</kbd> to focus, move it</li>
+        <li>Prompt: <em>Objects only</em>, “5 different pirates with swords”</li>
+        <li>Lighting preset, then <kbd>H</kbd> presentation mode</li>
+        <li>Turn on Jupiter 3D</li>
+      </ul>
+      <p class="muted" style="margin-top:30px; font-size:.7em">Questions? · github.com/davidbuenov/Wordsmith · Built with dbv-specs-ops</p>
+    </div>
+    <div style="text-align:center"><img class="shot" style="width:100%" src="img/island.png" alt=""></div>
+  </div>
+</section>
+
+<!-- Appendix -->
+<section>
+  <h2><small>Appendix</small>HTTP API and contracts</h2>
+  <table class="t">
+    <tr><th>Endpoint</th><th>Purpose</th></tr>
+    <tr><td><code>POST /api/generate</code></td><td>Start a job from <code>WorldPromptInput</code> (prompt, mode, style, maxAssets)</td></tr>
+    <tr><td><code>GET /api/jobs/:id</code> · <code>/events</code></td><td>Job state; Server-Sent Events with phase, progress and message</td></tr>
+    <tr><td><code>GET /api/storage/worlds</code> · <code>/models</code></td><td>Stored maps and GLB models, alphabetical, pinned first</td></tr>
+    <tr><td><code>POST /api/storage/upload</code></td><td>Persist an imported map or GLB (content-hashed, up to 500 MB)</td></tr>
+    <tr><td><code>GET/POST/DELETE /api/storage/scenes</code></td><td>Save, list, load and delete scenes (<code>SceneFileSchema</code>)</td></tr>
+    <tr><td><code>GET/PUT /api/storage/favorites/:kind</code></td><td>Pins for worlds and models</td></tr>
+  </table>
+  <p class="muted" style="font-size:.6em; margin-top:16px">Job phases: QUEUED · ANALYZING · GENERATING_WORLD · GENERATING_ASSETS · COMPOSING · COMPLETED · FAILED.</p>
+</section>
+
+</div>
+</div>
+
+<script src="vendor/reveal/reveal.js"></script>
+<script src="vendor/reveal/plugin/notes/notes.js"></script>
+<script src="vendor/mermaid/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    securityLevel: 'strict',
+    fontFamily: '"Segoe UI", system-ui, sans-serif',
+    flowchart: { curve: 'basis', htmlLabels: true, padding: 14, nodeSpacing: 40, rankSpacing: 46, wrappingWidth: 380 },
+    sequence: { useMaxWidth: true, mirrorActors: false, messageMargin: 30, boxMargin: 6, actorFontSize: 20, messageFontSize: 20, noteFontSize: 20, width: 170 },
+    themeVariables: {
+      darkMode: true,
+      background: '#0b1020',
+      fontSize: '22px',
+      primaryColor: '#1c2748',
+      primaryTextColor: '#e8ecf8',
+      primaryBorderColor: '#7c9cff',
+      secondaryColor: '#2a1f3d',
+      tertiaryColor: '#10172e',
+      lineColor: '#9aa7d6',
+      textColor: '#e8ecf8',
+      mainBkg: '#1c2748',
+      nodeBorder: '#7c9cff',
+      clusterBkg: '#111933',
+      clusterBorder: '#3a4a85',
+      titleColor: '#e8ecf8',
+      edgeLabelBackground: '#0b1020',
+      actorBkg: '#1c2748', actorBorder: '#7c9cff', actorTextColor: '#e8ecf8', actorLineColor: '#4a5a95',
+      signalColor: '#c4cdf0', signalTextColor: '#e8ecf8',
+      labelBoxBkgColor: '#1c2748', labelBoxBorderColor: '#7c9cff', labelTextColor: '#e8ecf8',
+      loopTextColor: '#e8ecf8', noteBkgColor: '#2a3560', noteTextColor: '#e8ecf8', noteBorderColor: '#7c9cff',
+      sequenceNumberColor: '#0b1020',
+      cScale0: '#2b3a78', cScale1: '#4a2f6e', cScale2: '#1f5f5b', cScale3: '#7a3f2f', cScale4: '#2b3a78',
+      cScaleLabel0: '#ffffff', cScaleLabel1: '#ffffff', cScaleLabel2: '#ffffff', cScaleLabel3: '#ffffff', cScaleLabel4: '#ffffff'
+    }
+  });
+
+  let counter = 0;
+  async function renderDiagrams() {
+    for (const holder of document.querySelectorAll('.diagram')) {
+      const source = holder.querySelector('script.mmd');
+      if (!source) { continue; }
+      try {
+        const { svg } = await mermaid.render('mmd-' + (counter++), source.textContent.trim());
+        holder.insertAdjacentHTML('beforeend', svg);
+        const el = holder.querySelector('svg');
+        if (el) { el.removeAttribute('height'); el.style.maxWidth = '100%'; el.style.maxHeight = '100%'; }
+      } catch (error) {
+        holder.insertAdjacentHTML('beforeend', '<pre class="err">Diagram error: ' + String(error) + '</pre>');
+      }
+    }
+    document.documentElement.setAttribute('data-diagrams', 'ready');
+  }
+
+  Reveal.initialize({
+    width: 1280,
+    height: 720,
+    margin: 0.04,
+    hash: true,
+    controls: true,
+    progress: true,
+    slideNumber: 'c/t',
+    transition: 'fade',
+    transitionSpeed: 'fast',
+    center: false,
+    plugins: [RevealNotes]
+  });
+  renderDiagrams();
+</script>
+</body>
+</html>

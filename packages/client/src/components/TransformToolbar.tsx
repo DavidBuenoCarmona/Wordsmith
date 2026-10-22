@@ -38,7 +38,7 @@ export const TransformToolbar: React.FC<TransformToolbarProps> = ({
   return (
     <div
       data-testid="transform-toolbar"
-      className="absolute bottom-28 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 bg-slate-900/90 backdrop-blur-md border border-slate-750 px-4 py-2.5 rounded-2xl shadow-2xl text-xs text-slate-200 select-none animate-in fade-in zoom-in-95 duration-150"
+      className="absolute bottom-52 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 bg-slate-900/90 backdrop-blur-md border border-slate-750 px-4 py-2.5 rounded-2xl shadow-2xl text-xs text-slate-200 select-none animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Asset Identifier Badge */}
       <div className="flex items-center gap-1.5 pr-2 border-r border-slate-750 max-w-[140px]">
@@ -52,7 +52,7 @@ export const TransformToolbar: React.FC<TransformToolbarProps> = ({
       <div className="flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
         <button
           onClick={() => onModeChange('translate')}
-          title="Translate / Move Mode (Key M)"
+          title="Translate / Move Mode (Key W)"
           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-medium transition-all ${
             mode === 'translate'
               ? 'bg-indigo-600 text-white shadow-md'
@@ -61,12 +61,12 @@ export const TransformToolbar: React.FC<TransformToolbarProps> = ({
         >
           <Move className="w-3.5 h-3.5" />
           <span>Move</span>
-          <span className="text-[10px] opacity-75 font-mono ml-0.5 px-1 py-0.2 bg-black/30 rounded">M</span>
+          <span className="text-[10px] opacity-75 font-mono ml-0.5 px-1 py-0.2 bg-black/30 rounded">W</span>
         </button>
 
         <button
           onClick={() => onModeChange('rotate')}
-          title="Rotate Mode (Key R)"
+          title="Rotate Mode (Key E)"
           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-medium transition-all ${
             mode === 'rotate'
               ? 'bg-indigo-600 text-white shadow-md'
@@ -75,12 +75,12 @@ export const TransformToolbar: React.FC<TransformToolbarProps> = ({
         >
           <RotateCw className="w-3.5 h-3.5" />
           <span>Rotate</span>
-          <span className="text-[10px] opacity-75 font-mono ml-0.5 px-1 py-0.2 bg-black/30 rounded">R</span>
+          <span className="text-[10px] opacity-75 font-mono ml-0.5 px-1 py-0.2 bg-black/30 rounded">E</span>
         </button>
 
         <button
           onClick={() => onModeChange('scale')}
-          title="Scale Mode (Key C)"
+          title="Scale Mode (Key R)"
           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-medium transition-all ${
             mode === 'scale'
               ? 'bg-indigo-600 text-white shadow-md'
@@ -89,7 +89,7 @@ export const TransformToolbar: React.FC<TransformToolbarProps> = ({
         >
           <Maximize2 className="w-3.5 h-3.5" />
           <span>Scale</span>
-          <span className="text-[10px] opacity-75 font-mono ml-0.5 px-1 py-0.2 bg-black/30 rounded">C</span>
+          <span className="text-[10px] opacity-75 font-mono ml-0.5 px-1 py-0.2 bg-black/30 rounded">R</span>
         </button>
       </div>
 

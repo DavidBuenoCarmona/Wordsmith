@@ -32,6 +32,12 @@ export const ProgressOverlay: React.FC<ProgressOverlayProps> = ({ job }) => {
     return 'pending';
   };
 
+  // Cada modo solo muestra las fases que realmente ejecuta
+  const phases = PHASES.filter(
+    (p) =>
+      !(job.mode === 'objects' && p.id === 'GENERATING_WORLD') && !(job.mode === 'world' && p.id === 'GENERATING_ASSETS')
+  );
+
   return (
     <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full max-w-md bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl p-4 shadow-2xl space-y-3 z-20 animate-in fade-in zoom-in-95 duration-200">
       <div className="flex items-center justify-between">
@@ -54,14 +60,24 @@ export const ProgressOverlay: React.FC<ProgressOverlayProps> = ({ job }) => {
       {/* Helper Note */}
       <div className="flex items-start gap-2 text-[11px] text-slate-400 bg-slate-800/60 p-2 rounded-xl border border-slate-750/70">
         <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-        <span>
-          World Labs generates volumetric Gaussian Splatting (<span className="text-indigo-300 font-mono">.spz</span>). The scene will remain clear until the terrain and 3D assets are ready (~3 to 4 min).
-        </span>
+        {job.mode === 'objects' ? (
+          <span>
+            Tripo is generating your models. Your current scene stays untouched; the new objects will appear in front of the camera when they are ready (~1 to 2 min).
+          </span>
+        ) : job.mode === 'world' ? (
+          <span>
+            World Labs generates volumetric Gaussian Splatting (<span className="text-indigo-300 font-mono">.spz</span>). Your objects are kept; only the world will change (~3 to 4 min).
+          </span>
+        ) : (
+          <span>
+            World Labs generates volumetric Gaussian Splatting (<span className="text-indigo-300 font-mono">.spz</span>). The scene will remain clear until the terrain and 3D assets are ready (~3 to 4 min).
+          </span>
+        )}
       </div>
 
       {/* Phase List */}
       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-        {PHASES.map((p) => {
+        {phases.map((p) => {
           const status = getPhaseStatus(p.id);
           return (
             <div key={p.id} className="flex items-center gap-2 text-[11px]">

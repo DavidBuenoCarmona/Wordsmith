@@ -50,7 +50,8 @@ export const WorldSpecSchema = z.object({
   title: z.string().min(1),
   description: z.string(),
   environment: EnvironmentSpecSchema,
-  assets: z.array(AssetSpecSchema).min(1).max(5),
+  // Puede estar vacío cuando solo se genera el escenario (modo "world")
+  assets: z.array(AssetSpecSchema).max(5),
 });
 
 export type WorldSpec = z.infer<typeof WorldSpecSchema>;

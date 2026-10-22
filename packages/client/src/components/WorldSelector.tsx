@@ -5,8 +5,11 @@
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Globe, ChevronDown, Check, Sparkles, Folder, RefreshCw, FolderOpen } from 'lucide-react';
+import { useFavorites } from '../hooks/useFavorites.js';
+import { sortWithFavorites } from '../utils/sort.js';
+import { FavoriteStar } from './FavoriteStar.js';
 
 export interface SavedWorld {
   id: string;
@@ -15,6 +18,7 @@ export interface SavedWorld {
   theme?: string;
   sceneUrl: string;
   previewUrl?: string;
+  colliderUrl?: string;
   type: 'spz' | 'ply' | 'glb' | 'pano';
   source: 'local_file' | 'generation_cache' | 'reference';
 }
@@ -22,17 +26,24 @@ export interface SavedWorld {
 interface WorldSelectorProps {
   activeWorldUrl: string | null;
   onSelectWorld: (world: SavedWorld) => void;
+  /** Importar un archivo de mapa del dispositivo (App lo sube a storage/ y lo carga). */
+  onImportFile: (file: File) => void;
+  /** Cambia para forzar una recarga del listado (p. ej. tras importar). */
+  refreshToken?: number;
 }
 
 export const WorldSelector: React.FC<WorldSelectorProps> = ({
   activeWorldUrl,
   onSelectWorld,
+  onImportFile,
+  refreshToken = 0,
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [worlds, setWorlds] = useState<SavedWorld[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { favorites, toggleFavorite } = useFavorites('worlds');
 
   const fetchWorlds = async () => {
     setIsLoading(true);
@@ -51,7 +62,7 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
 
   useEffect(() => {
     fetchWorlds();
-  }, []);
+  }, [refreshToken]);
 
   // Cerrar al hacer click fuera
   useEffect(() => {
@@ -64,36 +75,16 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Manejador para abrir archivo de mapa local (.spz, .ply, .glb, .png, .jpg) sin persistir en servidor
-  const handleLocalWorldUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFilePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    const objectUrl = `${URL.createObjectURL(file)}#${encodeURIComponent(file.name)}`;
-    const type: SavedWorld['type'] =
-      ext === 'glb' || ext === 'gltf'
-        ? 'glb'
-        : ext === 'png' || ext === 'jpg' || ext === 'jpeg'
-        ? 'pano'
-        : ext === 'ply'
-        ? 'ply'
-        : 'spz';
-
-    const customWorld: SavedWorld = {
-      id: `blob-world-${Date.now()}`,
-      name: file.name.replace(/\.[^/.]+$/, ''),
-      description: `${ext?.toUpperCase()} file opened in browser (${(file.size / 1024 / 1024).toFixed(1)} MB)`,
-      sceneUrl: objectUrl,
-      type,
-      source: 'local_file',
-    };
-
-    onSelectWorld(customWorld);
-    setIsOpen(false);
+    if (file) {
+      onImportFile(file);
+      setIsOpen(false);
+    }
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const sortedWorlds = useMemo(() => sortWithFavorites(worlds, favorites), [worlds, favorites]);
   const activeWorld = activeWorldUrl ? worlds.find((w) => w.sceneUrl === activeWorldUrl) : null;
 
   return (
@@ -103,7 +94,7 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
         ref={fileInputRef}
         type="file"
         accept=".spz,.ply,.splat,.glb,.gltf,.png,.jpg,.jpeg"
-        onChange={handleLocalWorldUpload}
+        onChange={handleFilePicked}
         className="hidden"
       />
 
@@ -131,11 +122,11 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                title="Open map from your device (.spz, .ply, .glb)"
+                title="Import a map from your device (.spz, .ply, .glb) — it is saved to storage/worlds"
                 className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-800/60 text-indigo-300 text-[10px] transition-colors"
               >
                 <FolderOpen className="w-3 h-3" />
-                <span>Open Map</span>
+                <span>Import Map</span>
               </button>
               <button
                 onClick={(e) => {
@@ -151,21 +142,32 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
           </div>
 
           <div className="max-h-64 overflow-y-auto mt-1 space-y-1 pr-1 custom-scrollbar">
-            {worlds.map((w) => {
+            {sortedWorlds.map((w) => {
               const isSelected = w.sceneUrl === activeWorldUrl;
               return (
-                <button
+                <div
                   key={w.id}
+                  data-testid="world-row"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => {
                     onSelectWorld(w);
                     setIsOpen(false);
                   }}
-                  className={`w-full text-left p-2.5 rounded-xl transition-all flex items-start gap-2.5 ${
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      onSelectWorld(w);
+                      setIsOpen(false);
+                    }
+                  }}
+                  className={`w-full text-left p-2.5 rounded-xl transition-all flex items-start gap-2 cursor-pointer ${
                     isSelected
                       ? 'bg-indigo-950/70 border border-indigo-500/40 text-white'
                       : 'hover:bg-slate-800/80 text-slate-300 border border-transparent'
                   }`}
                 >
+                  <FavoriteStar active={favorites.has(w.id)} onToggle={() => toggleFavorite(w.id)} />
+
                   <div className="mt-0.5">
                     {w.source === 'local_file' ? (
                       <Folder className="w-4 h-4 text-emerald-400" />
@@ -197,14 +199,14 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
                   </div>
 
                   {isSelected && <Check className="w-4 h-4 text-indigo-400 shrink-0 mt-1" />}
-                </button>
+                </div>
               );
             })}
           </div>
 
           <div className="p-2 border-t border-slate-800/80 text-[10px] text-slate-400 flex items-center justify-between">
-            <span>📁 storage/worlds/</span>
-            <span className="text-indigo-400 font-mono">Supports .spz, .ply and .glb</span>
+            <span>⭐ Pinned first · A–Z</span>
+            <span className="text-indigo-400 font-mono">📁 storage/worlds/</span>
           </div>
         </div>
       )}

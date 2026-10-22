@@ -26,6 +26,49 @@ import { GenerationStorage } from './generationStorage.js';
  */
 export class MockLLMProvider implements ILLMProvider {
   async decomposePrompt(input: WorldPromptInput): Promise<WorldSpec> {
+    const spec = this.decomposeFullWorld(input);
+    let result: WorldSpec;
+
+    if (input.mode === 'world') {
+      result = { ...spec, assets: [] };
+    } else if (input.mode === 'objects') {
+      result = this.decomposeObjectsOnly(input, spec);
+    } else {
+      result = spec;
+    }
+
+    return result;
+  }
+
+  /** Modo "objects": N variantes distintas del sujeto del prompt, sin entorno nuevo. */
+  private decomposeObjectsOnly(input: WorldPromptInput, base: WorldSpec): WorldSpec {
+    const variants = ['red coat', 'blue coat', 'green hat', 'golden armor', 'ragged clothes'];
+    const subject = input.prompt.replace(/^\s*(add|añade|añadir|crea|create)\s+/i, '').trim() || 'object';
+    const assets = Array.from({ length: input.maxAssets }, (_, i) => ({
+      id: `object-${i + 1}`,
+      name: `${subject.slice(0, 40)} ${i + 1}`,
+      prompt: `${subject}, ${variants[i % variants.length]}, unique variation ${i + 1}, 3d game asset`,
+      category: 'character' as const,
+      position: { x: (i - (input.maxAssets - 1) / 2) * 2, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+      anchorToGround: true,
+    }));
+
+    return WorldSpecSchema.parse({
+      ...base,
+      title: 'Objetos Añadidos',
+      environment: {
+        prompt: 'Existing world, not generated',
+        theme: 'existing-world',
+        lighting: 'day',
+        skyboxColor: '#87ceeb',
+      },
+      assets,
+    });
+  }
+
+  private decomposeFullWorld(input: WorldPromptInput): WorldSpec {
     const lower = input.prompt.toLowerCase();
     const isPirate = lower.includes('pirat') || lower.includes('barco');
     const isPlayground = lower.includes('parque') || lower.includes('play') || lower.includes('niño') || lower.includes('juego') || lower.includes('tobogan') || lower.includes('columpio');

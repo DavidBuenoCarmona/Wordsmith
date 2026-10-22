@@ -1,6 +1,6 @@
 {
   "name": "@wordsmith/client",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,7 +15,8 @@
     "lucide-react": "^0.359.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "three": "^0.180.0"
+    "three": "^0.180.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/react": "^18.2.66",

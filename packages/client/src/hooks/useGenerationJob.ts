@@ -58,6 +58,7 @@ export function useGenerationJob() {
               const base = prev || {
                 id: event.jobId,
                 prompt: input.prompt,
+                mode: input.mode,
                 phase: event.phase,
                 progress: event.progress,
                 message: event.message,

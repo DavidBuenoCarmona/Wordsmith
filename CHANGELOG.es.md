@@ -18,6 +18,43 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+## [0.4.0] — 2026-10-16
+
+Versión de autoría de escenas: las composiciones se pueden **guardar y restaurar**, todos los objetos aparecen en un **Outliner** editable, los atajos siguen a **Unreal Engine** y la acción **Floor** se reconstruyó sobre la geometría real del mundo.
+
+### Added
+- **Guardar / Cargar Escenas**: nuevo menú `Scenes`. Una escena es un JSON simple (`storage/scenes/*.json`) con la referencia al mundo, la posición / rotación / escala de cada modelo (+ oculto/bloqueado), la cámara, la calibración de suelo y la iluminación. Nuevo contrato `SceneFileSchema` en `@wordsmith/shared` y endpoints `GET/POST /api/storage/scenes`, `GET/DELETE /api/storage/scenes/:id`.
+- **Importaciones persistentes**: los archivos importados desde disco (mapas y modelos GLB) se suben a `storage/worlds` / `storage/models` (`POST /api/storage/upload`, por hash de contenido: reimportar no duplica) para poder listarlos y restaurarlos en escenas guardadas.
+- **Panel Outliner** (derecha): lista alfabética de todos los objetos de la escena, incluidos los añadidos a mano; clic para seleccionar, **`F` / diana para centrar la cámara** (sin selección encuadra toda la escena), doble clic para renombrar, mostrar/ocultar, bloquear y borrar.
+- **Inspector numérico**: campos editables de posición, rotación (°) y escala que siguen al gizmo en vivo.
+- **Pins**: marca con una estrella cualquier mundo o modelo para mantenerlo arriba de su lista (persistido en `storage/favorites.json`; `GET/PUT /api/storage/favorites/:kind`).
+- **Deshacer / rehacer** (`Ctrl+Z`, `Ctrl+Y`) para mover, rotar, escalar, añadir, borrar, duplicar y renombrar; **duplicar** (`Ctrl+D`).
+- **Modo presentación** (`H`): oculta la interfaz y orbita la cámara; botón **Capture** (captura PNG); **presets de iluminación** (Día / Atardecer / Noche / Niebla); **ayuda de atajos** (`?`).
+- **Selector de modo de generación** en la barra de prompt: **Everything** (mundo + objetos, reemplaza la escena), **Scenery only** (solo World Labs, conserva tus objetos) y **Objects only** (solo Tripo, *añade* los modelos a la escena actual — p. ej. "5 piratas diferentes" en una isla que ya tiene barcos). Nuevo campo `mode` en `WorldPromptInput` / `GenerationJob`; el prompt del LLM ahora es común a los proveedores OpenAI, Anthropic y Gemini y varía según el modo (objetos distintos, ids únicos por job para no sobrescribir modelos guardados). Los objetos nuevos aparecen en fila delante de la cámara, separados según su tamaño real y apoyados en el suelo. Los jobs fallidos ahora muestran un aviso.
+- **Calibración del nivel de suelo** en el Outliner (Y manual, "desde el objeto seleccionado", volver a automático).
+- Tests: visor, esquema de escena, almacenamiento / rutas, modos de generación y componentes React (monorepo con 103 tests), más una ejecución E2E manual en Chrome (CDP) de todo el flujo.
+
+### Changed
+- **Orden alfabético** (sin distinguir mayúsculas/acentos y con números naturales) de mundos y modelos, en servidor y cliente; los pins van primero.
+- **Atajos estilo Unreal**: `W` mover, `E` rotar, `R` escalar, `F` enfocar, `Supr` borrar. `WASD`/`Q`/`E` vuelan la cámara con el ratón pulsado (o sin selección).
+- La lista de mundos expone también archivos `.ply` y panoramas 360 de `storage/worlds`, y el `colliderUrl` de World Labs.
+- La cabecera muestra `v0.4.0` en lugar de la etiqueta `MVP`; el antiguo `AssetInspector` se sustituyó por el Outliner.
+
+### Fixed
+- **Floor / pegar al suelo**: los modelos flotaban media altura porque el pivote está en el centro pero se sumaba la altura completa. Ahora la base queda exactamente sobre la superficie, teniendo en cuenta escala y rotación.
+- **Detección del suelo**: el rayo parte del propio objeto (no de 150 m de altura), así que ya no aterriza en tejados o techos, y usa la **malla de colisión** de World Labs cuando existe (el raycast sobre un Gaussian splat no tiene triángulos y daba impactos erráticos).
+- Los modelos añadidos frente a la cámara se posan sobre el suelo real bajo la cámara en vez de a una altura fija.
+- Error de compilación `tsc` preexistente en `httpWorldLabsProvider.ts` (tipado de `imagery.pano_url`).
+- Pins: la petición de favoritos se lanzaba desde dentro de un updater de estado de React (se enviaba dos veces en modo estricto); ahora se envía una vez desde una copia síncrona del estado.
+- `vite.config.ts`: `strictPort` para que una segunda instancia de Vite no pueda ocupar el puerto del backend (3001) y hacer proxy de `/api` a sí misma.
+
+### Notas de revisión (code-simplify, 2026-10-16)
+- *Importante* (aceptado): `sceneUrl` / `modelUrl` de una escena guardada pueden apuntar a cualquier URL (las carga el navegador) — válido para una herramienta local de un solo usuario; añadir lista blanca si algún día se aloja. Las subidas se almacenan en memoria (límite 500 MB).
+- *Importante* (deuda): `WorldViewer3D.ts` supera las 2.000 líneas; dividir en módulos de historial / cámara / suelo (ver `task.md`).
+- Simplificado: código repetido de media altura y de liberación del entorno extraído a helpers; eliminado el último `any` del código nuevo.
+
+---
+
 ## [0.3.0] — 2026-10-04
 
 Versión mayor de estabilización, soporte de hardware autoestereoscópico **JupiterSR**, manipulación interactiva de escena con gizmos y orquestación multi-proveedor de IA.

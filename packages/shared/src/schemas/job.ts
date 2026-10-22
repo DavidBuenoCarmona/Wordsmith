@@ -7,6 +7,7 @@
 
 import { z } from 'zod';
 import { WorldSpecSchema } from './world.js';
+import { GenerationModeSchema } from './prompt.js';
 
 export const GenerationPhaseSchema = z.enum([
   'QUEUED',
@@ -42,6 +43,7 @@ export type EnvironmentState = z.infer<typeof EnvironmentStateSchema>;
 export const GenerationJobSchema = z.object({
   id: z.string().uuid(),
   prompt: z.string(),
+  mode: GenerationModeSchema.default('all'),
   phase: GenerationPhaseSchema,
   progress: z.number().min(0).max(100),
   message: z.string(),

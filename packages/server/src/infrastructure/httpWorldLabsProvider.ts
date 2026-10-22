@@ -27,6 +27,9 @@ interface WorldLabsWorldDetailResponse {
   world_marble_url?: string;
   assets?: {
     thumbnail_url?: string;
+    imagery?: {
+      pano_url?: string;
+    };
     mesh?: {
       collider_mesh_url?: string;
       hq_mesh_url?: string;

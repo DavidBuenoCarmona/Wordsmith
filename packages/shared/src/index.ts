@@ -8,3 +8,4 @@
 export * from './schemas/prompt.js';
 export * from './schemas/world.js';
 export * from './schemas/job.js';
+export * from './schemas/scene.js';

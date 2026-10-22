@@ -3,7 +3,7 @@
 > **AI-Native 3D World Director** — Transforma un único prompt en lenguaje natural en un mundo 3D compuesto, interactivo y explorable en el navegador.
 
 [![English README](https://img.shields.io/badge/Language-English%20(Primary)-blue.svg)](./README.md)
-[![Changelog](https://img.shields.io/badge/Changelog-v0.3.0-orange.svg)](./CHANGELOG.es.md)
+[![Changelog](https://img.shields.io/badge/Changelog-v0.4.0-orange.svg)](./CHANGELOG.es.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-indigo.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18-cyan.svg)](https://reactjs.org/)
@@ -193,12 +193,17 @@ Hacé clic en el **icono de deslizadores** junto al botón 3D para abrir el pane
 
 ## 🎮 Navegación 3D y Manipulación de Escena
 
-- **Cámara Libre:** Clic y arrastre con el mouse para orientar la vista; teclas `W`, `A`, `S`, `D` para desplazarte en el espacio.
-- **Selección de Assets:** Clic en cualquier objeto 3D de la escena o desde el panel de inspección.
-- **Gizmo de Transformación:**
-  - `Modo Traslación`: Mover objetos en los ejes X, Y, Z.
-  - `Modo Rotación`: Rotación suave del modelo.
-  - `Pegar al Suelo (Snap to Ground)`: Ancla automáticamente objetos flotantes a la altura del suelo (`Y = -1.5m`).
+Los atajos siguen las convenciones de **Unreal Engine** (pulsa `?` en la app para verlos todos).
+
+- **Modos de Generación:** La barra de prompt permite elegir qué genera la IA — **Everything** (mundo + objetos, reemplaza la escena), **Scenery only** (solo el entorno; se conservan tus objetos) u **Objects only** (solo modelos de Tripo, añadidos a tu escena actual — p. ej. *"5 piratas diferentes con espadas"*). Elige cuántos objetos (1–5), ya que cada uno consume créditos de Tripo.
+- **Cámara Libre:** Clic y arrastre para orientar la vista; con el ratón pulsado usa `W` `A` `S` `D` (`Q`/`E` bajar/subir, `Shift` turbo) para volar. Sin ningún objeto seleccionado, `WASD` vuela sin pulsar el ratón.
+- **Outliner (panel derecho):** Lista todos los objetos de la escena (A–Z). Clic para seleccionar, `F` o el botón de la diana para centrar la cámara en él (sin selección, `F` encuadra toda la escena), doble clic para renombrar, y visibilidad / bloqueo / borrado por objeto.
+- **Inspector numérico:** Escribe valores exactos de **posición**, **rotación (°)** y **escala** del objeto seleccionado; los campos siguen al gizmo en vivo.
+- **Gizmo de Transformación:** `W` mover · `E` rotar · `R` escalar · `Ctrl+D` duplicar · `Supr` borrar · `Ctrl+Z` / `Ctrl+Y` deshacer / rehacer.
+- **Floor (suelo):** Apoya la base del objeto sobre la primera superficie bajo él. En mundos de World Labs usa la **malla de colisión** del mundo; si no, la malla del entorno y, por último, un nivel de suelo calibrable a mano (*Floor level* en el Outliner).
+- **Guardar / Cargar Escenas:** El menú **Scenes** guarda la composición actual (mundo + modelos con posición, rotación y escala + cámara) como un JSON simple en `storage/scenes/`. Todo lo que importes desde disco se guarda en `storage/` para poder restaurarlo después.
+- **Pins:** Marca con la estrella cualquier mundo o modelo para fijarlo arriba de su lista; el resto queda en orden alfabético.
+- **Modo Presentación (`H`):** Oculta la interfaz y orbita la cámara alrededor de la escena. También: **Capture** (captura PNG) y presets de iluminación (Día / Atardecer / Noche / Niebla).
 
 ---
 

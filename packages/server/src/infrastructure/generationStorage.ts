@@ -7,7 +7,34 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { WorldSpec } from '@wordsmith/shared';
+import * as crypto from 'node:crypto';
+import {
+  WorldSpec,
+  SceneFile,
+  SceneFileSchema,
+  SceneIdSchema,
+  SceneSummary,
+  FavoritesKind,
+} from '@wordsmith/shared';
+
+export type StorageResult<T> = { ok: true; value: T } | { ok: false; error: string };
+
+export type UploadKind = 'world' | 'model';
+
+const UPLOAD_EXTENSIONS: Record<UploadKind, readonly string[]> = {
+  world: ['.spz', '.ply', '.splat', '.glb', '.gltf', '.png', '.jpg', '.jpeg'],
+  model: ['.glb', '.gltf'],
+};
+
+/** Nombre legible de un archivo local: sin el sufijo de hash de las importaciones y sin guiones. */
+export function displayName(baseName: string): string {
+  return baseName.replace(/-[0-9a-f]{8}$/, '').replace(/[-_]/g, ' ');
+}
+
+/** Comparador alfabético estable: sin distinguir mayúsculas/acentos y con números naturales. */
+export function compareByName(a: { name: string }, b: { name: string }): number {
+  return a.name.localeCompare(b.name, 'es', { sensitivity: 'base', numeric: true });
+}
 
 export interface CachedWorldLabsRecord {
   id: string;
@@ -39,7 +66,8 @@ export interface SavedWorldItem {
   theme: string;
   sceneUrl: string;
   previewUrl?: string;
-  type: 'spz' | 'glb' | 'pano';
+  colliderUrl?: string;
+  type: 'spz' | 'ply' | 'glb' | 'pano';
   source: 'local_file' | 'generation_cache' | 'reference';
   createdAt?: string;
 }
@@ -62,6 +90,8 @@ export class GenerationStorage {
   private readonly modelsDir: string;
   private readonly worldLabsDir: string;
   private readonly tripoDir: string;
+  private readonly scenesDir: string;
+  private readonly favoritesPath: string;
 
   constructor(customBaseDir?: string) {
     if (customBaseDir) {
@@ -80,6 +110,8 @@ export class GenerationStorage {
     this.modelsDir = path.join(this.rootDir, 'storage', 'models');
     this.worldLabsDir = path.join(this.baseDir, 'worldlabs');
     this.tripoDir = path.join(this.baseDir, 'tripo');
+    this.scenesDir = path.join(this.rootDir, 'storage', 'scenes');
+    this.favoritesPath = path.join(this.rootDir, 'storage', 'favorites.json');
 
     this.ensureDirectories();
   }
@@ -124,6 +156,9 @@ export class GenerationStorage {
     }
     if (!fs.existsSync(this.tripoDir)) {
       fs.mkdirSync(this.tripoDir, { recursive: true });
+    }
+    if (!fs.existsSync(this.scenesDir)) {
+      fs.mkdirSync(this.scenesDir, { recursive: true });
     }
   }
 
@@ -182,6 +217,11 @@ export class GenerationStorage {
         const content = await fs.promises.readFile(path.join(this.worldLabsDir, file), 'utf8');
         const parsed = JSON.parse(content);
         if (parsed.sceneUrl) {
+          // Los registros guardados por la app conservan el colisionador dentro de rawResponse
+          const rawCollider = parsed.rawResponse?.assets?.mesh?.collider_mesh_url;
+          if (!parsed.colliderMeshUrl && typeof rawCollider === 'string') {
+            parsed.colliderMeshUrl = rawCollider;
+          }
           records.push(parsed);
         } else if (parsed.world?.assets?.splats?.spz_urls?.full_res || parsed.world?.assets?.splats?.spz_urls?.['500k'] || parsed.world?.assets?.mesh?.collider_mesh_url) {
           const w = parsed.world || parsed.operation?.response;
@@ -253,11 +293,23 @@ export class GenerationStorage {
           seenUrls.add(fileUrl);
           results.push({
             id: `local-${file}`,
-            name: `${baseName.replace(/[-_]/g, ' ')} (Local ${ext.toUpperCase().replace('.', '')})`,
+            name: `${displayName(baseName)} (Local ${ext.toUpperCase().replace('.', '')})`,
             description: `Archivo local 3D Gaussian Splatting en storage/worlds/${file}`,
             theme: baseName,
             sceneUrl: fileUrl,
-            type: 'spz',
+            type: ext === '.ply' ? 'ply' : 'spz',
+            source: 'local_file',
+          });
+        } else if (ext === '.png' || ext === '.jpg' || ext === '.jpeg') {
+          const fileUrl = `/api/storage/files/${encodeURIComponent(file)}`;
+          seenUrls.add(fileUrl);
+          results.push({
+            id: `local-${file}`,
+            name: `${displayName(baseName)} (Local 360)`,
+            description: `Panorama 360 local en storage/worlds/${file}`,
+            theme: baseName,
+            sceneUrl: fileUrl,
+            type: 'pano',
             source: 'local_file',
           });
         } else if (ext === '.glb') {
@@ -265,7 +317,7 @@ export class GenerationStorage {
           seenUrls.add(fileUrl);
           results.push({
             id: `local-${file}`,
-            name: `${baseName.replace(/[-_]/g, ' ')} (Local GLB)`,
+            name: `${displayName(baseName)} (Local GLB)`,
             description: `Archivo local 3D GLB en storage/worlds/${file}`,
             theme: baseName,
             sceneUrl: fileUrl,
@@ -292,6 +344,7 @@ export class GenerationStorage {
         theme: item.theme || 'custom',
         sceneUrl: item.sceneUrl,
         previewUrl: item.previewUrl,
+        colliderUrl: item.colliderMeshUrl,
         type: isSpz ? 'spz' : isGlb ? 'glb' : 'pano',
         source: 'generation_cache',
         createdAt: item.createdAt,
@@ -301,19 +354,20 @@ export class GenerationStorage {
     // 3. Incluir el Parque Infantil de Referencia oficial si no está ya
     const defaultPlaygroundUrl = 'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/d8d581cb-71ae-49d3-945d-d3e889f4c642_ceramic.spz';
     if (!seenUrls.has(defaultPlaygroundUrl)) {
-      results.unshift({
+      results.push({
         id: 'reference-playground',
         name: 'Parque Infantil (World Labs)',
         description: 'Escenario completo 3D Gaussian Splatting de parque infantil con toboganes, columpios y arenero.',
         theme: 'playground',
         sceneUrl: defaultPlaygroundUrl,
         previewUrl: 'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/c82503bc-265c-4d97-981e-0adca15df304_sand_mpi/thumbnail.webp',
+        colliderUrl: 'https://cdn.marble.worldlabs.ai/43956d0c-f28e-44d8-9832-df6f0133e97a/49925c3c.glb',
         type: 'spz',
         source: 'reference',
       });
     }
 
-    return results;
+    return results.sort(compareByName);
   }
 
   // --- Listado Consolidado de Modelos 3D Guardados (para el selector de modelos de la UI) ---
@@ -335,7 +389,7 @@ export class GenerationStorage {
           seenUrls.add(fileUrl);
           results.push({
             id: `local-model-${file}`,
-            name: baseName.replace(/[-_]/g, ' '),
+            name: displayName(baseName),
             description: `Modelo 3D local GLB en storage/models/${file}`,
             modelUrl: fileUrl,
             category: 'prop',
@@ -363,7 +417,7 @@ export class GenerationStorage {
       });
     }
 
-    return results;
+    return results.sort(compareByName);
   }
 
   // Resolver ruta de archivo local para servirlo
@@ -479,5 +533,172 @@ export class GenerationStorage {
 
     const latest = list[0];
     return { modelUrl: latest.modelUrl };
+  }
+
+  // --- Escenas guardadas (JSON: mundo + modelos con posición/rotación/escala) ---
+
+  static sceneIdFromName(name: string): string {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60)
+      .replace(/-+$/g, '');
+  }
+
+  private static summarizeScene(id: string, scene: SceneFile): SceneSummary {
+    return {
+      id,
+      name: scene.name,
+      savedAt: scene.savedAt,
+      worldName: scene.world?.name ?? null,
+      modelCount: scene.models.length,
+    };
+  }
+
+  async saveScene(scene: SceneFile): Promise<StorageResult<SceneSummary>> {
+    this.ensureDirectories();
+    const id = GenerationStorage.sceneIdFromName(scene.name) || 'scene';
+    let result: StorageResult<SceneSummary>;
+
+    try {
+      await fs.promises.writeFile(
+        path.join(this.scenesDir, `${id}.json`),
+        JSON.stringify(scene, null, 2),
+        'utf8'
+      );
+      result = { ok: true, value: GenerationStorage.summarizeScene(id, scene) };
+    } catch (err) {
+      result = { ok: false, error: `No se pudo guardar la escena: ${(err as Error).message}` };
+    }
+
+    return result;
+  }
+
+  async getScene(id: string): Promise<SceneFile | null> {
+    let scene: SceneFile | null = null;
+
+    if (SceneIdSchema.safeParse(id).success) {
+      try {
+        const content = await fs.promises.readFile(path.join(this.scenesDir, `${id}.json`), 'utf8');
+        const parsed = SceneFileSchema.safeParse(JSON.parse(content));
+        scene = parsed.success ? parsed.data : null;
+      } catch {
+        scene = null;
+      }
+    }
+
+    return scene;
+  }
+
+  async listScenes(): Promise<SceneSummary[]> {
+    this.ensureDirectories();
+    const files = await fs.promises.readdir(this.scenesDir);
+    const summaries: SceneSummary[] = [];
+
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+      const id = path.basename(file, '.json');
+      const scene = await this.getScene(id);
+      if (scene) summaries.push(GenerationStorage.summarizeScene(id, scene));
+    }
+
+    return summaries.sort(compareByName);
+  }
+
+  async deleteScene(id: string): Promise<boolean> {
+    let deleted = false;
+
+    if (SceneIdSchema.safeParse(id).success) {
+      try {
+        await fs.promises.unlink(path.join(this.scenesDir, `${id}.json`));
+        deleted = true;
+      } catch {
+        deleted = false;
+      }
+    }
+
+    return deleted;
+  }
+
+  // --- Importación de archivos del usuario (persisten para poder guardarse en escenas) ---
+
+  /**
+   * Guarda un archivo importado en storage/worlds o storage/models con un nombre
+   * derivado del hash del contenido: reimportar el mismo archivo no crea duplicados.
+   */
+  async saveUpload(
+    kind: UploadKind,
+    originalName: string,
+    data: Buffer
+  ): Promise<StorageResult<{ filename: string; url: string; name: string }>> {
+    this.ensureDirectories();
+    const ext = path.extname(originalName).toLowerCase();
+    let result: StorageResult<{ filename: string; url: string; name: string }>;
+
+    if (!UPLOAD_EXTENSIONS[kind].includes(ext)) {
+      result = { ok: false, error: `Extensión '${ext || '(ninguna)'}' no permitida para ${kind}.` };
+    } else if (data.length === 0) {
+      result = { ok: false, error: 'El archivo está vacío.' };
+    } else {
+      const baseName = path.basename(originalName, ext);
+      const slug = this.slugify(baseName) || kind;
+      const hash = crypto.createHash('sha1').update(data).digest('hex').slice(0, 8);
+      const filename = `${slug}-${hash}${ext}`;
+      const dir = kind === 'world' ? this.worldsDir : this.modelsDir;
+      const filePath = path.join(dir, filename);
+
+      try {
+        if (!fs.existsSync(filePath)) {
+          await fs.promises.writeFile(filePath, data);
+        }
+        result = {
+          ok: true,
+          value: {
+            filename,
+            url: `/api/storage/files/${encodeURIComponent(filename)}`,
+            name: displayName(baseName),
+          },
+        };
+      } catch (err) {
+        result = { ok: false, error: `No se pudo guardar el archivo: ${(err as Error).message}` };
+      }
+    }
+
+    return result;
+  }
+
+  // --- Favoritos (pins) de mundos y modelos ---
+
+  async getFavorites(kind: FavoritesKind): Promise<string[]> {
+    const all = await this.readFavoritesFile();
+    return all[kind];
+  }
+
+  async setFavorites(kind: FavoritesKind, ids: string[]): Promise<string[]> {
+    const all = await this.readFavoritesFile();
+    all[kind] = Array.from(new Set(ids));
+    await fs.promises.mkdir(path.dirname(this.favoritesPath), { recursive: true });
+    await fs.promises.writeFile(this.favoritesPath, JSON.stringify(all, null, 2), 'utf8');
+    return all[kind];
+  }
+
+  private async readFavoritesFile(): Promise<Record<FavoritesKind, string[]>> {
+    const empty: Record<FavoritesKind, string[]> = { worlds: [], models: [] };
+    const onlyStrings = (value: unknown): string[] =>
+      Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
+    let result = empty;
+
+    try {
+      const content = await fs.promises.readFile(this.favoritesPath, 'utf8');
+      const parsed = JSON.parse(content) as Partial<Record<FavoritesKind, unknown>>;
+      result = { worlds: onlyStrings(parsed.worlds), models: onlyStrings(parsed.models) };
+    } catch {
+      result = empty;
+    }
+
+    return result;
   }
 }

@@ -85,19 +85,26 @@ describe('Contracts & Schemas Suite (packages/shared)', () => {
       }
     });
 
-    it('debe rechazar si no tiene al menos 1 asset o supera 5', () => {
-      const specWithoutAssets = {
+    it('acepta una lista de assets vacía (modo "solo escenario") pero rechaza más de 5', () => {
+      const base = {
         title: 'Mundo vacío',
         description: 'Sin assets',
         environment: {
           prompt: 'Empty plain',
           theme: 'plain',
         },
-        assets: [],
       };
+      const asset = (n: number) => ({
+        id: `a-${n}`,
+        name: `Asset ${n}`,
+        prompt: 'A 3d prop',
+        category: 'prop',
+        position: { x: 0, y: 0, z: 0 },
+      });
 
-      const result = WorldSpecSchema.safeParse(specWithoutAssets);
-      expect(result.success).toBe(false);
+      expect(WorldSpecSchema.safeParse({ ...base, assets: [] }).success).toBe(true);
+      expect(WorldSpecSchema.safeParse({ ...base, assets: [1, 2, 3, 4, 5].map(asset) }).success).toBe(true);
+      expect(WorldSpecSchema.safeParse({ ...base, assets: [1, 2, 3, 4, 5, 6].map(asset) }).success).toBe(false);
     });
   });
 

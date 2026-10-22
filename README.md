@@ -3,7 +3,7 @@
 > **AI-Native 3D World Director** — Transform a single natural language prompt into an interactive, composed 3D world explorable directly in your web browser.
 
 [![Español README](https://img.shields.io/badge/Idioma-Español%20(Secundario)-emerald.svg)](./README.es.md)
-[![Changelog](https://img.shields.io/badge/Changelog-v0.3.0-orange.svg)](./CHANGELOG.md)
+[![Changelog](https://img.shields.io/badge/Changelog-v0.4.0-orange.svg)](./CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-indigo.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18-cyan.svg)](https://reactjs.org/)
@@ -193,12 +193,17 @@ Access the calibration panel by clicking the **Sliders icon** next to the 3D tog
 
 ## 🎮 3D Navigation & Scene Manipulation
 
-- **Free-Flight Camera:** Click and drag with mouse to look around; use `W`, `A`, `S`, `D` keys to navigate through the 3D world.
-- **Asset Selection:** Click on any 3D asset in the scene or inspector panel to select it.
-- **Transform Gizmo:**
-  - `Translate Mode`: Move assets along X, Y, Z axes.
-  - `Rotate Mode`: Rotate assets smoothly.
-  - `Snap to Ground`: Automatically drops floating objects to ground level (`Y = -1.5m`).
+Shortcuts follow **Unreal Engine** conventions (press `?` in the app to see them all).
+
+- **Generation Modes:** The prompt bar lets you choose what the AI generates — **Everything** (world + objects, replaces the scene), **Scenery only** (just the environment; your objects are kept) or **Objects only** (just Tripo models, added to your current scene — e.g. *"5 different pirates with swords"*). Pick how many objects (1–5) since each one uses Tripo credits.
+- **Free-Flight Camera:** Click and drag to look around; hold the mouse and use `W` `A` `S` `D` (`Q`/`E` down/up, `Shift` boost) to fly. With nothing selected, `WASD` flies without holding the mouse.
+- **Outliner (right panel):** Lists every object in the scene (A–Z). Click to select, `F` or the crosshair button to focus the camera on it (with nothing selected, `F` frames the whole scene), double-click to rename, and toggle visibility / lock / delete per object.
+- **Numeric Inspector:** Type exact **position**, **rotation (°)** and **scale** values for the selected object; fields follow the gizmo live.
+- **Transform Gizmo:** `W` move · `E` rotate · `R` scale · `Ctrl+D` duplicate · `Del` delete · `Ctrl+Z` / `Ctrl+Y` undo / redo.
+- **Floor:** Drops the base of the object onto the first surface below it. For World Labs worlds it uses the world's **collision mesh**; otherwise the environment mesh, and finally a floor level you can calibrate manually (*Floor level* in the Outliner).
+- **Save / Load Scenes:** The **Scenes** menu stores the current composition (world + models with position, rotation and scale + camera) as a plain JSON file in `storage/scenes/`. Everything you import from disk is saved to `storage/` so it can be restored later.
+- **Pins:** Star any world or model to pin it to the top of its list; the rest stays alphabetical.
+- **Presentation Mode (`H`):** Hides the UI and orbits the camera around the scene. Also: **Capture** (PNG screenshot) and lighting presets (Day / Sunset / Night / Foggy).
 
 ---
 
